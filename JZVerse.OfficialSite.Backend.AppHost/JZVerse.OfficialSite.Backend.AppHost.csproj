@@ -8,4 +8,22 @@
         <UserSecretsId>5e73bfff-ae35-4b7d-9c9e-1144284b5ad0</UserSecretsId>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\src\business\JZVerse.OfficialSite.Backend.Business.Academy\JZVerse.OfficialSite.Backend.Business.Academy.csproj" />
+      <ProjectReference Include="..\src\business\JZVerse.OfficialSite.Backend.Business.Administrator\JZVerse.OfficialSite.Backend.Business.Administrator.csproj" />
+      <ProjectReference Include="..\src\business\JZVerse.OfficialSite.Backend.Business.Blog\JZVerse.OfficialSite.Backend.Business.Blog.csproj" />
+      <ProjectReference Include="..\src\business\JZVerse.OfficialSite.Backend.Business.Project\JZVerse.OfficialSite.Backend.Business.Project.csproj" />
+      <ProjectReference Include="..\src\central\JZVerse.OfficialSite.Backend.Central.File\JZVerse.OfficialSite.Backend.Central.File.csproj" />
+      <ProjectReference Include="..\src\central\JZVerse.OfficialSite.Backend.Central.Security\JZVerse.OfficialSite.Backend.Central.Security.csproj" />
+      <ProjectReference Include="..\src\central\JZVerse.OfficialSite.Backend.Central.User\JZVerse.OfficialSite.Backend.Central.User.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.Elasticsearch" Version="13.1.0" />
+      <PackageReference Include="Aspire.Hosting.Garnet" Version="13.1.0" />
+      <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.1.0" />
+      <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.0" />
+      <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.1.0" />
+    </ItemGroup>
+
 </Project>

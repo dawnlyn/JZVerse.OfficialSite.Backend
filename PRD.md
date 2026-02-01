@@ -409,6 +409,7 @@
 - 接口文档：Swagger/OpenAPI，实现接口的自动生成和在线测试
 - 定时任务：Quartz.NET，预留自研接口
 - 消息推送：EasyNotice，预留自研接口
+- 全文搜索：Elasticsearch，预留自研接口
 
 #### 4.3.2 微服务服务拆分（MVP版本）
 

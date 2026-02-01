@@ -1,0 +1,3 @@
+[submodule "wwwroot"]
+	path = wwwroot
+	url = https://gitee.com/jzverse/jzverse.officialsite.frontend.git

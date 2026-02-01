@@ -1,9 +1,24 @@
 <Solution>
-  <Folder Name="/杂项/">
-    <File Path=".gitignore" />
-    <File Path="PRD.md" />
-    <File Path="README.md" />
-  </Folder>
-  <Project Path="JZVerse.OfficialSite.Backend.AppHost/JZVerse.OfficialSite.Backend.AppHost.csproj" />
-  <Project Path="JZVerse.OfficialSite.Backend.ServiceDefaults/JZVerse.OfficialSite.Backend.ServiceDefaults.csproj" />
+    <Folder Name="/杂项/">
+        <File Path=".gitignore" />
+        <File Path="PRD.md" />
+        <File Path="README.md" />
+    </Folder>
+    <Project Path="JZVerse.OfficialSite.Backend.AppHost/JZVerse.OfficialSite.Backend.AppHost.csproj" />
+    <Project Path="JZVerse.OfficialSite.Backend.ServiceDefaults/JZVerse.OfficialSite.Backend.ServiceDefaults.csproj" />
+    <Folder Name="/tests/">
+        <Project Path="tests\JZVerse.OfficialSite.Backend.IntegrationTest\JZVerse.OfficialSite.Backend.IntegrationTest.csproj" />
+    </Folder>
+    <Folder Name="/src/" />
+    <Folder Name="/src/business/">
+        <Project Path="src/business/JZVerse.OfficialSite.Backend.Business.Academy/JZVerse.OfficialSite.Backend.Business.Academy.csproj" />
+        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Administrator\JZVerse.OfficialSite.Backend.Business.Administrator.csproj" />
+        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Blog\JZVerse.OfficialSite.Backend.Business.Blog.csproj" />
+        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Project\JZVerse.OfficialSite.Backend.Business.Project.csproj" />
+    </Folder>
+    <Folder Name="/src/central/">
+        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.File/JZVerse.OfficialSite.Backend.Central.File.csproj" />
+        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.Security/JZVerse.OfficialSite.Backend.Central.Security.csproj" />
+        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.User/JZVerse.OfficialSite.Backend.Central.User.csproj" />
+    </Folder>
 </Solution>
