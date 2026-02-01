@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/杂项/">
+    <File Path=".gitignore" />
+    <File Path="PRD.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="JZVerse.OfficialSite.Backend.AppHost/JZVerse.OfficialSite.Backend.AppHost.csproj" />
+  <Project Path="JZVerse.OfficialSite.Backend.ServiceDefaults/JZVerse.OfficialSite.Backend.ServiceDefaults.csproj" />
+</Solution>
