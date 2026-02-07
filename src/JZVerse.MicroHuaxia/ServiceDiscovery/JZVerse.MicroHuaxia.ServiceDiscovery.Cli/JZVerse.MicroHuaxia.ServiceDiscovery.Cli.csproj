@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceDiscovery.Cli</RootNamespace>
+    <AssemblyName>mhx-sd</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 命令行解析 -->
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.AppHost\JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Client\JZVerse.MicroHuaxia.ServiceDiscovery.Client.csproj" />
+  </ItemGroup>
+
+</Project>

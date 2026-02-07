@@ -1,0 +1,34 @@
+syntax = "proto3";
+package jzverse.microhuaxia.common;
+
+option csharp_namespace = "JZVerse.MicroHuaxia.Protos.Common";
+
+// 通用元数据
+message Metadata {
+    map<string, string> properties = 1;
+}
+
+// 时间戳
+message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+}
+
+// 健康状态
+enum HealthStatus {
+    HEALTH_STATUS_UNKNOWN = 0;
+    HEALTH_STATUS_HEALTHY = 1;
+    HEALTH_STATUS_UNHEALTHY = 2;
+    HEALTH_STATUS_DEGRADED = 3;
+    HEALTH_STATUS_STARTING = 4;
+    HEALTH_STATUS_STOPPING = 5;
+}
+
+// 空请求
+message Empty {}
+
+// 操作结果
+message OperationResult {
+    bool success = 1;
+    string message = 2;
+}

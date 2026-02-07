@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.Gateway.Logging</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- OpenTelemetry 核心包 -->
+    <PackageReference Include="OpenTelemetry" Version="1.11.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
+    
+    <!-- OpenTelemetry 导出器 -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.11.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.11.0" />
+    
+    <!-- SQLite -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-rc.2.25501.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Abstractions\JZVerse.MicroHuaxia.Gateway.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

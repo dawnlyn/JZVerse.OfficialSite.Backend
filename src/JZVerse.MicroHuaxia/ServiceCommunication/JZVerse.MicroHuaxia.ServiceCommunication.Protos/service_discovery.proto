@@ -1,0 +1,181 @@
+syntax = "proto3";
+package jzverse.microhuaxia.servicediscovery;
+
+import "common.proto";
+
+option csharp_namespace = "JZVerse.MicroHuaxia.Protos.ServiceDiscovery";
+
+// 服务发现 gRPC 服务
+service ServiceDiscoveryService {
+    // 注册服务实例
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    
+    // 注销服务实例
+    rpc Deregister(DeregisterRequest) returns (DeregisterResponse);
+    
+    // 发送心跳
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+    
+    // 获取服务实例列表
+    rpc GetInstances(GetInstancesRequest) returns (GetInstancesResponse);
+    
+    // 获取单个实例（负载均衡）
+    rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+    
+    // 服务发现（条件查询）
+    rpc Discover(DiscoverRequest) returns (DiscoverResponse);
+    
+    // 获取所有服务名称
+    rpc GetServiceNames(GetServiceNamesRequest) returns (GetServiceNamesResponse);
+    
+    // 更新健康状态
+    rpc UpdateHealthStatus(UpdateHealthStatusRequest) returns (UpdateHealthStatusResponse);
+    
+    // 订阅服务变更（Server Streaming）
+    rpc WatchService(WatchServiceRequest) returns (stream ServiceEvent);
+}
+
+// 服务实例
+message ServiceInstance {
+    string instance_id = 1;
+    string service_name = 2;
+    string version = 3;
+    string host = 4;
+    int32 port = 5;
+    string scheme = 6;
+    string base_path = 7;
+    repeated string tags = 8;
+    common.Metadata metadata = 9;
+    common.HealthStatus health = 10;
+    int64 registered_at = 11;
+    int64 last_heartbeat_at = 12;
+    int32 weight = 13;
+    bool enabled = 14;
+}
+
+// 注册请求
+message RegisterRequest {
+    string service_name = 1;
+    string version = 2;
+    string host = 3;
+    int32 port = 4;
+    string scheme = 5;
+    string base_path = 6;
+    repeated string tags = 7;
+    common.Metadata metadata = 8;
+    int32 weight = 9;
+    optional string instance_id = 10;
+    int32 heartbeat_interval_seconds = 11;
+    HealthCheckConfiguration health_check = 12;
+}
+
+// 健康检查配置
+message HealthCheckConfiguration {
+    bool enable_active_check = 1;
+    int32 active_check_interval_seconds = 2;
+    string endpoint = 3;
+    int32 timeout_seconds = 4;
+    int32 failure_threshold = 5;
+    int32 success_threshold = 6;
+}
+
+// 注册响应
+message RegisterResponse {
+    ServiceInstance instance = 1;
+}
+
+// 注销请求
+message DeregisterRequest {
+    string instance_id = 1;
+}
+
+// 注销响应
+message DeregisterResponse {
+    bool success = 1;
+}
+
+// 心跳请求
+message HeartbeatRequest {
+    string instance_id = 1;
+}
+
+// 心跳响应
+message HeartbeatResponse {
+    bool success = 1;
+}
+
+// 获取实例列表请求
+message GetInstancesRequest {
+    string service_name = 1;
+}
+
+// 获取实例列表响应
+message GetInstancesResponse {
+    repeated ServiceInstance instances = 1;
+}
+
+// 获取单个实例请求
+message GetInstanceRequest {
+    string service_name = 1;
+}
+
+// 获取单个实例响应
+message GetInstanceResponse {
+    ServiceInstance instance = 1;
+    bool found = 2;
+}
+
+// 服务发现请求
+message DiscoverRequest {
+    string service_name = 1;
+    optional string version = 2;
+    repeated string tags = 3;
+    bool only_healthy = 4;
+    bool only_enabled = 5;
+    optional string environment = 6;
+    optional string region = 7;
+}
+
+// 服务发现响应
+message DiscoverResponse {
+    repeated ServiceInstance instances = 1;
+}
+
+// 获取服务名称列表请求
+message GetServiceNamesRequest {}
+
+// 获取服务名称列表响应
+message GetServiceNamesResponse {
+    repeated string service_names = 1;
+}
+
+// 更新健康状态请求
+message UpdateHealthStatusRequest {
+    string instance_id = 1;
+    common.HealthStatus status = 2;
+}
+
+// 更新健康状态响应
+message UpdateHealthStatusResponse {
+    bool success = 1;
+}
+
+// 订阅服务变更请求
+message WatchServiceRequest {
+    string service_name = 1;
+}
+
+// 服务事件
+message ServiceEvent {
+    enum EventType {
+        EVENT_TYPE_UNKNOWN = 0;
+        EVENT_TYPE_REGISTERED = 1;
+        EVENT_TYPE_DEREGISTERED = 2;
+        EVENT_TYPE_HEALTH_CHANGED = 3;
+        EVENT_TYPE_METADATA_UPDATED = 4;
+    }
+    
+    EventType event_type = 1;
+    ServiceInstance instance = 2;
+    int64 timestamp = 3;
+}

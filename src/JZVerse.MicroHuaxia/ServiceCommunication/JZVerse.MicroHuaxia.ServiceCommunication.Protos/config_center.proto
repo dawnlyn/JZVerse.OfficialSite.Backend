@@ -1,0 +1,275 @@
+syntax = "proto3";
+package jzverse.microhuaxia.configcenter;
+
+import "common.proto";
+
+option csharp_namespace = "JZVerse.MicroHuaxia.Protos.ConfigCenter";
+
+// 配置中心 gRPC 服务
+service ConfigCenterService {
+    // 获取配置（字典形式）
+    rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+    
+    // 获取单个配置值
+    rpc GetValue(GetValueRequest) returns (GetValueResponse);
+    
+    // 获取命名空间配置（支持灰度）
+    rpc GetNamespaceConfig(GetNamespaceConfigRequest) returns (GetNamespaceConfigResponse);
+    
+    // 查询配置项列表
+    rpc QueryConfig(QueryConfigRequest) returns (QueryConfigResponse);
+    
+    // 订阅配置变更（Server Streaming）
+    rpc WatchConfig(WatchConfigRequest) returns (stream ConfigChangeEvent);
+    
+    // 创建或更新配置
+    rpc UpsertConfig(UpsertConfigRequest) returns (UpsertConfigResponse);
+    
+    // 删除配置
+    rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+    
+    // 批量设置配置
+    rpc BatchSetConfig(BatchSetConfigRequest) returns (BatchSetConfigResponse);
+    
+    // 创建灰度发布
+    rpc CreateGrayRelease(CreateGrayReleaseRequest) returns (CreateGrayReleaseResponse);
+    
+    // 开始灰度发布
+    rpc StartGrayRelease(StartGrayReleaseRequest) returns (StartGrayReleaseResponse);
+    
+    // 完成灰度发布
+    rpc CompleteGrayRelease(CompleteGrayReleaseRequest) returns (CompleteGrayReleaseResponse);
+    
+    // 回滚灰度发布
+    rpc RollbackGrayRelease(RollbackGrayReleaseRequest) returns (RollbackGrayReleaseResponse);
+    
+    // 检查客户端是否匹配灰度规则
+    rpc MatchGrayRelease(MatchGrayReleaseRequest) returns (MatchGrayReleaseResponse);
+}
+
+// 客户端信息
+message ClientInfo {
+    string client_id = 1;
+    string ip_address = 2;
+    repeated string tags = 3;
+    common.Metadata properties = 4;
+}
+
+// 配置项
+message ConfigItem {
+    string item_id = 1;
+    string key = 2;
+    string value = 3;
+    string value_type = 4;
+    string namespace_id = 5;
+    string environment_id = 6;
+    int64 version = 7;
+    string comment = 8;
+    bool is_secret = 9;
+    bool is_required = 10;
+    int64 created_at = 11;
+    int64 updated_at = 12;
+    string created_by = 13;
+    string updated_by = 14;
+}
+
+// 获取配置请求
+message GetConfigRequest {
+    string application_id = 1;
+    string environment_id = 2;
+    optional string namespace_id = 3;
+}
+
+// 获取配置响应
+message GetConfigResponse {
+    map<string, string> config = 1;
+    int64 version = 2;
+}
+
+// 获取单个值请求
+message GetValueRequest {
+    string application_id = 1;
+    string environment_id = 2;
+    string key = 3;
+}
+
+// 获取单个值响应
+message GetValueResponse {
+    string value = 1;
+    bool found = 2;
+}
+
+// 获取命名空间配置请求
+message GetNamespaceConfigRequest {
+    string namespace_id = 1;
+    string environment_id = 2;
+    ClientInfo client_info = 3;
+}
+
+// 获取命名空间配置响应
+message GetNamespaceConfigResponse {
+    map<string, string> config = 1;
+    bool is_gray = 2;
+    string version_id = 3;
+}
+
+// 查询配置请求
+message QueryConfigRequest {
+    string application_id = 1;
+    string environment_id = 2;
+    optional string namespace_id = 3;
+    repeated string keys = 4;
+    bool include_secrets = 5;
+    ClientInfo client_info = 6;
+}
+
+// 查询配置响应
+message QueryConfigResponse {
+    repeated ConfigItem items = 1;
+}
+
+// 订阅配置变更请求
+message WatchConfigRequest {
+    string application_id = 1;
+    string environment_id = 2;
+    string namespace_id = 3;
+    string client_id = 4;
+}
+
+// 配置变更事件
+message ConfigChangeEvent {
+    enum ChangeType {
+        CHANGE_TYPE_UNKNOWN = 0;
+        CHANGE_TYPE_CREATED = 1;
+        CHANGE_TYPE_UPDATED = 2;
+        CHANGE_TYPE_DELETED = 3;
+        CHANGE_TYPE_ROLLBACK = 4;
+    }
+    
+    ChangeType change_type = 1;
+    string namespace_id = 2;
+    string key = 3;
+    string old_value = 4;
+    string new_value = 5;
+    int64 timestamp = 6;
+    string changed_by = 7;
+}
+
+// 创建/更新配置请求
+message UpsertConfigRequest {
+    ConfigItem item = 1;
+}
+
+// 创建/更新配置响应
+message UpsertConfigResponse {
+    bool success = 1;
+    ConfigItem item = 2;
+}
+
+// 删除配置请求
+message DeleteConfigRequest {
+    string item_id = 1;
+}
+
+// 删除配置响应
+message DeleteConfigResponse {
+    bool success = 1;
+}
+
+// 批量设置配置请求
+message BatchSetConfigRequest {
+    repeated ConfigItem items = 1;
+}
+
+// 批量设置配置响应
+message BatchSetConfigResponse {
+    bool success = 1;
+    int32 count = 2;
+}
+
+// 灰度规则
+message GrayRule {
+    enum RuleType {
+        RULE_TYPE_UNKNOWN = 0;
+        RULE_TYPE_IP = 1;
+        RULE_TYPE_TAG = 2;
+        RULE_TYPE_CLIENT_ID = 3;
+        RULE_TYPE_PERCENTAGE = 4;
+    }
+    
+    RuleType type = 1;
+    string match_pattern = 2;
+    int32 priority = 3;
+}
+
+// 灰度发布
+message GrayRelease {
+    string release_id = 1;
+    string release_name = 2;
+    string namespace_id = 3;
+    string environment_id = 4;
+    string strategy = 5;
+    repeated GrayRule rules = 6;
+    string status = 7;
+    int32 rollout_percentage = 8;
+    map<string, string> config_snapshot = 9;
+    int64 created_at = 10;
+    int64 started_at = 11;
+    int64 completed_at = 12;
+}
+
+// 创建灰度发布请求
+message CreateGrayReleaseRequest {
+    string release_name = 1;
+    string namespace_id = 2;
+    string environment_id = 3;
+    string strategy = 4;
+    repeated GrayRule rules = 5;
+}
+
+// 创建灰度发布响应
+message CreateGrayReleaseResponse {
+    GrayRelease release = 1;
+}
+
+// 开始灰度发布请求
+message StartGrayReleaseRequest {
+    string release_id = 1;
+}
+
+// 开始灰度发布响应
+message StartGrayReleaseResponse {
+    bool success = 1;
+}
+
+// 完成灰度发布请求
+message CompleteGrayReleaseRequest {
+    string release_id = 1;
+}
+
+// 完成灰度发布响应
+message CompleteGrayReleaseResponse {
+    bool success = 1;
+}
+
+// 回滚灰度发布请求
+message RollbackGrayReleaseRequest {
+    string release_id = 1;
+}
+
+// 回滚灰度发布响应
+message RollbackGrayReleaseResponse {
+    bool success = 1;
+}
+
+// 匹配灰度发布请求
+message MatchGrayReleaseRequest {
+    string release_id = 1;
+    ClientInfo client_info = 2;
+}
+
+// 匹配灰度发布响应
+message MatchGrayReleaseResponse {
+    bool matches = 1;
+    string release_id = 2;
+}

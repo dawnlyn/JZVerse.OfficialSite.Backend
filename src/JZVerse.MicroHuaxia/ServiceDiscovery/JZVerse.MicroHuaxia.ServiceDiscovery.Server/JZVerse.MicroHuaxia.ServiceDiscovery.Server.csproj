@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceDiscovery.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Core\JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.csproj" />
+
+  </ItemGroup>
+
+</Project>

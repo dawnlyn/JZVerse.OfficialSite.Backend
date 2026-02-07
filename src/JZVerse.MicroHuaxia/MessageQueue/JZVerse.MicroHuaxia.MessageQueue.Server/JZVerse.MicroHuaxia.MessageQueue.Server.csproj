@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.MessageQueue.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-rc.2.25502.107" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Abstractions\JZVerse.MicroHuaxia.MessageQueue.Abstractions.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Core\JZVerse.MicroHuaxia.MessageQueue.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog\JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp\JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp.csproj" />
+  </ItemGroup>
+
+</Project>

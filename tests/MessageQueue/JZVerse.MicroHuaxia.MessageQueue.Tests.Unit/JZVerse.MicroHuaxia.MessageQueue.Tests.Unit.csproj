@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>JZVerse.MicroHuaxia.MessageQueue.Tests.Unit</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0-rc.2.25502.107" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Abstractions\JZVerse.MicroHuaxia.MessageQueue.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Core\JZVerse.MicroHuaxia.MessageQueue.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog\JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc\JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.AspNetCore\JZVerse.MicroHuaxia.MessageQueue.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

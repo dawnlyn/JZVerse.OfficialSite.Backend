@@ -4,21 +4,87 @@
         <File Path="PRD.md" />
         <File Path="README.md" />
     </Folder>
-    <Project Path="JZVerse.OfficialSite.Backend.AppHost/JZVerse.OfficialSite.Backend.AppHost.csproj" />
-    <Project Path="JZVerse.OfficialSite.Backend.ServiceDefaults/JZVerse.OfficialSite.Backend.ServiceDefaults.csproj" />
-    <Folder Name="/tests/">
-        <Project Path="tests\JZVerse.OfficialSite.Backend.IntegrationTest\JZVerse.OfficialSite.Backend.IntegrationTest.csproj" />
+    <Folder Name="/src/JZVerse.MicroHuaxia/ServiceDiscovery/">
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions/JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Core/JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks/JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Client/JZVerse.MicroHuaxia.ServiceDiscovery.Client.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Server/JZVerse.MicroHuaxia.ServiceDiscovery.Server.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry/JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.AppHost/JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Cli/JZVerse.MicroHuaxia.ServiceDiscovery.Cli.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Grpc/JZVerse.MicroHuaxia.ServiceDiscovery.Grpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.JsonRpc/JZVerse.MicroHuaxia.ServiceDiscovery.JsonRpc.csproj" />
     </Folder>
-    <Folder Name="/src/" />
-    <Folder Name="/src/business/">
-        <Project Path="src/business/JZVerse.OfficialSite.Backend.Business.Academy/JZVerse.OfficialSite.Backend.Business.Academy.csproj" />
-        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Administrator\JZVerse.OfficialSite.Backend.Business.Administrator.csproj" />
-        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Blog\JZVerse.OfficialSite.Backend.Business.Blog.csproj" />
-        <Project Path="src\business\JZVerse.OfficialSite.Backend.Business.Project\JZVerse.OfficialSite.Backend.Business.Project.csproj" />
+    <Folder Name="/tests/ServiceDiscovery/">
+        <Project Path="tests/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Unit/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Unit.csproj" />
+        <Project Path="tests/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration.csproj" />
     </Folder>
-    <Folder Name="/src/central/">
-        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.File/JZVerse.OfficialSite.Backend.Central.File.csproj" />
-        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.Security/JZVerse.OfficialSite.Backend.Central.Security.csproj" />
-        <Project Path="src/central/JZVerse.OfficialSite.Backend.Central.User/JZVerse.OfficialSite.Backend.Central.User.csproj" />
+    <Folder Name="/src/JZVerse.MicroHuaxia/ConfigCenter/">
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Abstractions/JZVerse.MicroHuaxia.ConfigCenter.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Core/JZVerse.MicroHuaxia.ConfigCenter.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Server/JZVerse.MicroHuaxia.ConfigCenter.Server.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Client/JZVerse.MicroHuaxia.ConfigCenter.Client.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.AspNetCore/JZVerse.MicroHuaxia.ConfigCenter.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Grpc/JZVerse.MicroHuaxia.ConfigCenter.Grpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.JsonRpc/JZVerse.MicroHuaxia.ConfigCenter.JsonRpc.csproj" />
+    </Folder>
+    <Folder Name="/tests/ConfigCenter/">
+        <Project Path="tests/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Tests.Unit/JZVerse.MicroHuaxia.ConfigCenter.Tests.Unit.csproj" />
+        <Project Path="tests/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Tests.Integration/JZVerse.MicroHuaxia.ConfigCenter.Tests.Integration.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/ServiceCommunication/">
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Abstractions/JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Core/JZVerse.MicroHuaxia.ServiceCommunication.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Http/JZVerse.MicroHuaxia.ServiceCommunication.Http.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Grpc/JZVerse.MicroHuaxia.ServiceCommunication.Grpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc/JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Protos/JZVerse.MicroHuaxia.ServiceCommunication.Protos.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore/JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore.csproj" />
+    </Folder>
+    <Folder Name="/tests/ServiceCommunication/">
+        <Project Path="tests/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Tests.Unit/JZVerse.MicroHuaxia.ServiceCommunication.Tests.Unit.csproj" />
+        <Project Path="tests/ServiceCommunication/JZVerse.MicroHuaxia.ServiceCommunication.Tests.Integration/JZVerse.MicroHuaxia.ServiceCommunication.Tests.Integration.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/Gateway/">
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Abstractions/JZVerse.MicroHuaxia.Gateway.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Core/JZVerse.MicroHuaxia.Gateway.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Resilience/JZVerse.MicroHuaxia.Gateway.Resilience.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Tracing/JZVerse.MicroHuaxia.Gateway.Tracing.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Metrics/JZVerse.MicroHuaxia.Gateway.Metrics.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Logging/JZVerse.MicroHuaxia.Gateway.Logging.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.AspNetCore/JZVerse.MicroHuaxia.Gateway.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Http/JZVerse.MicroHuaxia.Gateway.Http.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.WebSocket/JZVerse.MicroHuaxia.Gateway.WebSocket.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Grpc/JZVerse.MicroHuaxia.Gateway.Grpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Server/JZVerse.MicroHuaxia.Gateway.Server.csproj" />
+    </Folder>
+    <Folder Name="/tests/Gateway/">
+        <Project Path="tests/Gateway/JZVerse.MicroHuaxia.Gateway.Tests.Unit/JZVerse.MicroHuaxia.Gateway.Tests.Unit.csproj" />
+        <Project Path="tests/Gateway/JZVerse.MicroHuaxia.Gateway.Tests.Integration/JZVerse.MicroHuaxia.Gateway.Tests.Integration.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/MessageQueue/">
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Abstractions/JZVerse.MicroHuaxia.MessageQueue.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Core/JZVerse.MicroHuaxia.MessageQueue.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Storage.Memory/JZVerse.MicroHuaxia.MessageQueue.Storage.Memory.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog/JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc/JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp/JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Protocol.Grpc/JZVerse.MicroHuaxia.MessageQueue.Protocol.Grpc.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Client/JZVerse.MicroHuaxia.MessageQueue.Client.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Server/JZVerse.MicroHuaxia.MessageQueue.Server.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.AspNetCore/JZVerse.MicroHuaxia.MessageQueue.AspNetCore.csproj" />
+    </Folder>
+    <Folder Name="/tests/MessageQueue/">
+        <Project Path="tests/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Tests.Unit/JZVerse.MicroHuaxia.MessageQueue.Tests.Unit.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/Saga/">
+        <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Abstractions/JZVerse.MicroHuaxia.Saga.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Core/JZVerse.MicroHuaxia.Saga.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.AspNetCore/JZVerse.MicroHuaxia.Saga.AspNetCore.csproj" />
+    </Folder>
+    <Folder Name="/tests/Saga/">
+        <Project Path="tests/Saga/JZVerse.MicroHuaxia.Saga.Tests.Unit/JZVerse.MicroHuaxia.Saga.Tests.Unit.csproj" />
     </Folder>
 </Solution>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Core\JZVerse.MicroHuaxia.ServiceCommunication.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Http\JZVerse.MicroHuaxia.ServiceCommunication.Http.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Grpc\JZVerse.MicroHuaxia.ServiceCommunication.Grpc.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc\JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.csproj" />
+    <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

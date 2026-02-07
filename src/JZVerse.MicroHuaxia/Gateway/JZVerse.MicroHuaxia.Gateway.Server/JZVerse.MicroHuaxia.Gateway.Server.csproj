@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.Gateway.Server</RootNamespace>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Abstractions\JZVerse.MicroHuaxia.Gateway.Abstractions.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Core\JZVerse.MicroHuaxia.Gateway.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.AspNetCore\JZVerse.MicroHuaxia.Gateway.AspNetCore.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Http\JZVerse.MicroHuaxia.Gateway.Http.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.WebSocket\JZVerse.MicroHuaxia.Gateway.WebSocket.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Grpc\JZVerse.MicroHuaxia.Gateway.Grpc.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Metrics\JZVerse.MicroHuaxia.Gateway.Metrics.csproj" />
+    <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Server\JZVerse.MicroHuaxia.ServiceDiscovery.Server.csproj" />
+    <ProjectReference Include="..\..\ConfigCenter\JZVerse.MicroHuaxia.ConfigCenter.Server\JZVerse.MicroHuaxia.ConfigCenter.Server.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.Gateway.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.8.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Gateway.Abstractions\JZVerse.MicroHuaxia.Gateway.Abstractions.csproj" />
+    <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions.csproj" />
+    <ProjectReference Include="..\..\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.Abstractions\JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

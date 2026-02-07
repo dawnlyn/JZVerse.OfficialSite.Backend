@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceCommunication.Grpc</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" Version="2.67.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Core\JZVerse.MicroHuaxia.ServiceCommunication.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Protos\JZVerse.MicroHuaxia.ServiceCommunication.Protos.csproj" />
+  </ItemGroup>
+
+</Project>

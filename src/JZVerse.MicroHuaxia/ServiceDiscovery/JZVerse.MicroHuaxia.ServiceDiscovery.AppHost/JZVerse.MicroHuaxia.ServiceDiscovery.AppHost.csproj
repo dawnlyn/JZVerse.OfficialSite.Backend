@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceDiscovery.AppHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- YAML 配置支持 -->
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Core\JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
+  </ItemGroup>
+
+</Project>

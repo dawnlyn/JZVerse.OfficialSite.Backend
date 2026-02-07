@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.MessageQueue.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Abstractions\JZVerse.MicroHuaxia.MessageQueue.Abstractions.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Core\JZVerse.MicroHuaxia.MessageQueue.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory\JZVerse.MicroHuaxia.MessageQueue.Storage.Memory.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc\JZVerse.MicroHuaxia.MessageQueue.Protocol.InProc.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.MessageQueue.Client\JZVerse.MicroHuaxia.MessageQueue.Client.csproj" />
+  </ItemGroup>
+
+</Project>

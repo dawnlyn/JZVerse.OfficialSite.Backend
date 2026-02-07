@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.ServiceDiscovery.JsonRpc</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Core\JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
+    <ProjectReference Include="..\..\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc\JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.csproj" />
+  </ItemGroup>
+
+</Project>
