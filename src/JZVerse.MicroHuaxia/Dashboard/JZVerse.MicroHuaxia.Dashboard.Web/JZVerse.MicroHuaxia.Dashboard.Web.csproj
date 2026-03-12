@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+      <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AntDesign" Version="0.20.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Abstractions\JZVerse.MicroHuaxia.Dashboard.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

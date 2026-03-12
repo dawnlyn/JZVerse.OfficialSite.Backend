@@ -1,0 +1,86 @@
+@page "/services"
+@inject IServiceDiscoveryApiClient ServiceDiscoveryClient
+@inject NavigationManager NavigationManager
+
+<PageTitle>服务列表</PageTitle>
+
+<div>
+    <PageHeader Title="服务列表" SubTitle="查看和管理所有注册的服务">
+        <PageHeaderExtra>
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Table TItem="ServiceInfo"
+           DataSource="@_services"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.ServiceName" Title="服务名称">
+            <a @onclick="() => ViewDetail(context.ServiceName)" style="cursor: pointer;">
+                @context.ServiceName
+            </a>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.InstanceCount" Title="实例数" Width="100" />
+        <PropertyColumn Property="c => c.HealthyCount" Title="健康" Width="80">
+            <span style="color: #52c41a;">@context.HealthyCount</span>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.UnhealthyCount" Title="异常" Width="80">
+            <span style="color: @(context.UnhealthyCount > 0 ? "#f5222d" : "#999");">
+                @context.UnhealthyCount
+            </span>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Status" Title="状态" Width="120">
+            @switch (context.Status)
+            {
+                case ServiceStatus.Healthy:
+                    <Tag Color="green">健康</Tag>
+                    break;
+                case ServiceStatus.PartialHealthy:
+                    <Tag Color="orange">部分健康</Tag>
+                    break;
+                case ServiceStatus.Unhealthy:
+                    <Tag Color="red">不健康</Tag>
+                    break;
+                default:
+                    <Tag>未知</Tag>
+                    break;
+            }
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="100">
+            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ViewDetail(context.ServiceName)">
+                详情
+            </Button>
+        </ActionColumn>
+    </Table>
+</div>
+
+@code {
+    private List<ServiceInfo> _services = new();
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _services = await ServiceDiscoveryClient.GetServicesAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ViewDetail(string serviceName)
+    {
+        NavigationManager.NavigateTo($"/services/{Uri.EscapeDataString(serviceName)}");
+    }
+}

@@ -1,0 +1,29 @@
+@using Microsoft.AspNetCore.Components.Web
+
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>未找到页面</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <Result Status="404"
+                    Title="404"
+                    SubTitle="抱歉，您访问的页面不存在。">
+                <Extra>
+                    <Button Type="@ButtonType.Primary" OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                        返回首页
+                    </Button>
+                </Extra>
+            </Result>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+<AntContainer />
+
+@code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+}

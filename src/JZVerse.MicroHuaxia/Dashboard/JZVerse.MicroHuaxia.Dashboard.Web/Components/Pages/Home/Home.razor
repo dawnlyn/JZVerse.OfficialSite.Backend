@@ -1,0 +1,165 @@
+@page "/"
+@inject IDashboardDataService DataService
+@inject IOptions<DashboardOptions> Options
+
+<PageTitle>@Options.Value.Title</PageTitle>
+
+<div>
+    <PageHeader Title="系统总览" SubTitle="MicroHuaxia 微服务框架运行状态">
+        <PageHeaderExtra>
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Row Gutter="(16, 16)">
+        @* 服务发现统计 *@
+        <Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered>
+                <Statistic Title="服务总数"
+                           Value="@_overview.ServiceDiscovery.TotalServices"
+                           PrefixTemplate="@cluster"
+                           ValueStyle="color: #1890ff" />
+            </Card>
+        </Col>
+        <Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered>
+                <Statistic Title="实例总数"
+                           Value="@_overview.ServiceDiscovery.TotalInstances"
+                           PrefixTemplate="@cloudServer"
+                           ValueStyle="color: #722ed1" />
+            </Card>
+        </Col>
+        <Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered>
+                <Statistic Title="健康实例"
+                           Value="@_overview.ServiceDiscovery.HealthyInstances"
+                           PrefixTemplate="@checkCircle"
+                           ValueStyle="color: #52c41a" />
+            </Card>
+        </Col>
+        <Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered>
+                <Statistic Title="健康率"
+                           Value="@_overview.ServiceDiscovery.HealthRate"
+                           Suffix="%"
+                           Precision="1"
+                           ValueStyle="@($"color: {GetHealthRateColor(_overview.ServiceDiscovery.HealthRate)}")" />
+            </Card>
+        </Col>
+
+        @* 配置中心统计 *@
+        <Col Xs="24" Sm="12" Lg="8">
+            <Card Bordered Title="配置中心">
+                <Row Gutter="16">
+                    <Col Span="12">
+                        <Statistic Title="命名空间" Value="@_overview.ConfigCenter.TotalNamespaces" />
+                    </Col>
+                    <Col Span="12">
+                        <Statistic Title="配置项" Value="@_overview.ConfigCenter.TotalConfigItems" />
+                    </Col>
+                </Row>
+            </Card>
+        </Col>
+
+        @* 网关统计 *@
+        <Col Xs="24" Sm="12" Lg="8">
+            <Card Bordered Title="API 网关">
+                <Row Gutter="16">
+                    <Col Span="12">
+                        <Statistic Title="路由数" Value="@_overview.Gateway.TotalRoutes" />
+                    </Col>
+                    <Col Span="12">
+                        <Statistic Title="QPS" Value="@_overview.Gateway.RequestsPerSecond" Precision="2" />
+                    </Col>
+                </Row>
+            </Card>
+        </Col>
+
+        @* 消息队列统计 *@
+        <Col Xs="24" Sm="12" Lg="8">
+            <Card Bordered Title="消息队列">
+                <Row Gutter="16">
+                    <Col Span="12">
+                        <Statistic Title="Topic 数" Value="@_overview.MessageQueue.TotalTopics" />
+                    </Col>
+                    <Col Span="12">
+                        <Statistic Title="待消费" Value="@_overview.MessageQueue.PendingMessages" />
+                    </Col>
+                </Row>
+            </Card>
+        </Col>
+    </Row>
+
+    @* 快捷入口 *@
+    <Card Title="快捷入口" Style="margin-top: 24px;">
+        <Row Gutter="(16, 16)">
+            <Col Xs="12" Sm="8" Md="6" Lg="4">
+                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Cluster" OnClick="@(() => NavigateTo("/services"))">
+                    服务列表
+                </Button>
+            </Col>
+            <Col Xs="12" Sm="8" Md="6" Lg="4">
+                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Setting" OnClick="@(() => NavigateTo("/configs"))">
+                    配置管理
+                </Button>
+            </Col>
+            <Col Xs="12" Sm="8" Md="6" Lg="4">
+                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Api" OnClick="@(() => NavigateTo("/gateway/routes"))">
+                    路由管理
+                </Button>
+            </Col>
+            <Col Xs="12" Sm="8" Md="6" Lg="4">
+                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.FileSearch" OnClick="@(() => NavigateTo("/gateway/audit"))">
+                    审计日志
+                </Button>
+            </Col>
+        </Row>
+    </Card>
+</div>
+
+@code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
+    private DashboardOverview _overview = new();
+    private bool _loading = false;
+
+    RenderFragment cloudServer =@<Icon Type="cloud-server" />;
+    RenderFragment cluster =@<Icon Type="cluster" />;
+    RenderFragment checkCircle =@<Icon Type="check-circle" />;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _overview = await DataService.GetOverviewAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void NavigateTo(string path)
+    {
+        NavigationManager.NavigateTo(path);
+    }
+
+    private static string GetHealthRateColor(double rate)
+    {
+        return rate switch
+        {
+            >= 90 => "#52c41a",  // 绿色
+            >= 70 => "#faad14",  // 黄色
+            _ => "#f5222d"       // 红色
+        };
+    }
+}

@@ -1,0 +1,83 @@
+@inherits LayoutComponentBase
+@inject IOptions<DashboardOptions> Options
+
+<Layout Style="min-height: 100vh;">
+    <Sider Collapsible
+           @bind-Collapsed="@_collapsed"
+           Theme="SiderTheme.Dark"
+           Width="256"
+           CollapsedWidth="80">
+        <div class="logo">
+            @if (!_collapsed)
+            {
+                <span>@Options.Value.Title</span>
+            }
+            else
+            {
+                <span>MH</span>
+            }
+        </div>
+        <NavMenu Collapsed="@_collapsed" />
+    </Sider>
+    <Layout>
+        <Header Style="background: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <Button Type="@ButtonType.Text"
+                        Icon="@(_collapsed ? IconType.Outline.MenuUnfold : IconType.Outline.MenuFold)"
+                        OnClick="@ToggleCollapsed" />
+            </div>
+            <div>
+                <Space>
+                    <SpaceItem>
+                        <Tooltip Title="@("刷新")">
+                            <Button Type="@ButtonType.Text" Icon="@IconType.Outline.Reload" OnClick="@Refresh" />
+                        </Tooltip>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Tooltip Title="@("设置")">
+                            <Button Type="@ButtonType.Text" Icon="@IconType.Outline.Setting" />
+                        </Tooltip>
+                    </SpaceItem>
+                </Space>
+            </div>
+        </Header>
+        <Content Style="margin: 24px 16px 0;">
+            <div style="padding: 24px; background: #fff; min-height: 360px;">
+                @Body
+            </div>
+        </Content>
+        <Footer Style="text-align: center;">
+            MicroHuaxia Dashboard &copy; @DateTime.Now.Year - Powered by JZVerse
+        </Footer>
+    </Layout>
+</Layout>
+
+<style>
+    .logo {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        margin: 16px;
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    private bool _collapsed = false;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    private void ToggleCollapsed() {
+        Console.WriteLine(_collapsed);
+         _collapsed = !_collapsed;
+        Console.WriteLine(_collapsed);
+    }
+
+    private void Refresh() =>
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+}

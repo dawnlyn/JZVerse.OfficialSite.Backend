@@ -1,0 +1,152 @@
+@page "/gateway/audit"
+@inject IGatewayApiClient GatewayClient
+
+<PageTitle>审计日志</PageTitle>
+
+<div>
+    <PageHeader Title="审计日志" SubTitle="查看网关请求审计记录">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Card Size="small" Style="margin-bottom: 16px;">
+        <Form Model="@_query" Layout="@FormLayout.Inline">
+            <FormItem Label="路径">
+                <Input @bind-Value="@_query.Path" Placeholder="请输入路径" Style="width: 200px;" />
+            </FormItem>
+            <FormItem Label="状态码">
+                <Select @bind-Value="@_query.StatusCode" TItemValue="int?" TItem="string" Placeholder="全部" AllowClear Style="width: 120px;">
+                    <SelectOptions>
+                        <SelectOption Value="@((int?)200)" Label="200" />
+                        <SelectOption Value="@((int?)400)" Label="400" />
+                        <SelectOption Value="@((int?)401)" Label="401" />
+                        <SelectOption Value="@((int?)403)" Label="403" />
+                        <SelectOption Value="@((int?)404)" Label="404" />
+                        <SelectOption Value="@((int?)500)" Label="500" />
+                    </SelectOptions>
+                </Select>
+            </FormItem>
+            <FormItem Label="时间范围">
+                <RangePicker @bind-Value="@_dateRange" ShowTime="@true" />
+            </FormItem>
+            <FormItem>
+                <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="@LoadDataAsync">
+                    查询
+                </Button>
+            </FormItem>
+        </Form>
+    </Card>
+
+    <Table TItem="AuditLog"
+           DataSource="@_logs"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle"
+           Total="@_total"
+           PageIndex="@_query.Page"
+           PageSize="@_query.PageSize"
+           OnPageIndexChange="@OnPageChange">
+        <PropertyColumn Property="c => c.Timestamp" Title="时间" Width="180">
+            @context.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Method" Title="方法" Width="80">
+            <Tag Color="@GetMethodColor(context.Method)">@context.Method</Tag>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Path" Title="路径" Ellipsis />
+        <PropertyColumn Property="c => c.StatusCode" Title="状态码" Width="80">
+            <Tag Color="@GetStatusCodeColor(context.StatusCode)">@context.StatusCode</Tag>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.ResponseTimeMs" Title="响应时间" Width="100">
+            <span style="color: @GetResponseTimeColor(context.ResponseTimeMs);">
+                @context.ResponseTimeMs ms
+            </span>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.ClientIp" Title="客户端 IP" Width="140" />
+        <PropertyColumn Property="c => c.TargetService" Title="目标服务" Width="120" />
+        <PropertyColumn Property="c => c.ErrorMessage" Title="错误信息" Ellipsis>
+            @if (!string.IsNullOrEmpty(context.ErrorMessage))
+            {
+                <Tooltip Title="@context.ErrorMessage">
+                    <span style="color: #f5222d;">@context.ErrorMessage</span>
+                </Tooltip>
+            }
+            else
+            {
+                <span style="color: #999;">-</span>
+            }
+        </PropertyColumn>
+    </Table>
+</div>
+
+@code {
+    private List<AuditLog> _logs = new();
+    private AuditLogQuery _query = new() { Page = 1, PageSize = 20 };
+    private DateTime?[]? _dateRange;
+    private int _total = 0;
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        if (_dateRange != null && _dateRange.Length == 2)
+        {
+            _query.StartTime = _dateRange[0];
+            _query.EndTime = _dateRange[1];
+        }
+
+        _loading = true;
+        try
+        {
+            var (items, total) = await GatewayClient.QueryAuditLogsAsync(_query);
+            _logs = items;
+            _total = total;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnPageChange(PaginationEventArgs args)
+    {
+        _query.Page = args.Page;
+        _query.PageSize = args.PageSize;
+        await LoadDataAsync();
+    }
+
+    private static string GetMethodColor(string method)
+    {
+        return method.ToUpperInvariant() switch
+        {
+            "GET" => "green",
+            "POST" => "blue",
+            "PUT" => "orange",
+            "DELETE" => "red",
+            "PATCH" => "purple",
+            _ => "default"
+        };
+    }
+
+    private static string GetStatusCodeColor(int statusCode)
+    {
+        if (statusCode >= 200 && statusCode < 300) return "green";
+        if (statusCode >= 300 && statusCode < 400) return "blue";
+        if (statusCode >= 400 && statusCode < 500) return "orange";
+        if (statusCode >= 500) return "red";
+        return "default";
+    }
+
+    private static string GetResponseTimeColor(long ms)
+    {
+        if (ms < 100) return "#52c41a";
+        if (ms < 500) return "#faad14";
+        return "#f5222d";
+    }
+}

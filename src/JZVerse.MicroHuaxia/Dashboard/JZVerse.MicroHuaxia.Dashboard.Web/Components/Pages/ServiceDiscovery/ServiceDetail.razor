@@ -1,0 +1,153 @@
+@page "/services/{ServiceName}"
+@inject IServiceDiscoveryApiClient ServiceDiscoveryClient
+@inject NavigationManager NavigationManager
+@inject IMessageService MessageService
+
+<PageTitle>服务详情 - @ServiceName</PageTitle>
+
+<div>
+    <PageHeader Title="@ServiceName" SubTitle="服务实例详情" OnBack="@GoBack">
+        <PageHeaderExtra>
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Table TItem="ServiceInstance"
+           DataSource="@_instances"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.InstanceId" Title="实例 ID" Ellipsis />
+        <PropertyColumn Property="c => c.Host" Title="主机" Width="150" />
+        <PropertyColumn Property="c => c.Port" Title="端口" Width="80" />
+        <PropertyColumn Property="c => c.HealthStatus" Title="健康状态" Width="100">
+            @switch (context.HealthStatus)
+            {
+                case HealthStatus.Healthy:
+                    <Tag Color="green">健康</Tag>
+                    break;
+                case HealthStatus.Unhealthy:
+                    <Tag Color="red">不健康</Tag>
+                    break;
+                default:
+                    <Tag>未知</Tag>
+                    break;
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Weight" Title="权重" Width="80" />
+        <PropertyColumn Property="c => c.RegisterTime" Title="注册时间" Width="180">
+            @context.RegisterTime.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.LastHeartbeat" Title="最后心跳" Width="180">
+            @context.LastHeartbeat.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="240">
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ShowMetadataModal(context)">
+                        元数据
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="确定要注销此实例吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeregisterInstance(context.InstanceId)">
+                        <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
+                            注销
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+            </Space>
+        </ActionColumn>
+    </Table>
+</div>
+
+@* 元数据编辑模态框 *@
+<Modal Title="实例元数据"
+       Visible="@_metadataModalVisible"
+       OnOk="@SaveMetadata"
+       OnCancel="@(() => _metadataModalVisible = false)"
+       ConfirmLoading="@_saving">
+    @if (_selectedInstance != null)
+    {
+        <Descriptions Bordered Column="1">
+            <DescriptionsItem Title="实例 ID">@_selectedInstance.InstanceId</DescriptionsItem>
+            <DescriptionsItem Title="地址">@_selectedInstance.Host:@_selectedInstance.Port</DescriptionsItem>
+        </Descriptions>
+        <Divider>元数据</Divider>
+        @if (_selectedInstance.Metadata.Any())
+        {
+            <Table TItem="KeyValuePair<string, string>"
+                   DataSource="@_selectedInstance.Metadata.ToList()"
+                   Size="TableSize.Small"
+                   HidePagination>
+                <PropertyColumn Property="c => c.Key" Title="键" />
+                <PropertyColumn Property="c => c.Value" Title="值" />
+            </Table>
+        }
+        else
+        {
+            <Empty Description="@("暂无元数据")" />
+        }
+    }
+</Modal>
+
+@code {
+    [Parameter]
+    public string ServiceName { get; set; } = string.Empty;
+
+    private List<ServiceInstance> _instances = new();
+    private bool _loading = false;
+    private bool _metadataModalVisible = false;
+    private bool _saving = false;
+    private ServiceInstance? _selectedInstance;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _instances = await ServiceDiscoveryClient.GetInstancesAsync(ServiceName);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/services");
+    }
+
+    private void ShowMetadataModal(ServiceInstance instance)
+    {
+        _selectedInstance = instance;
+        _metadataModalVisible = true;
+    }
+
+    private async Task SaveMetadata()
+    {
+        // TODO: 实现元数据编辑保存
+        _metadataModalVisible = false;
+    }
+
+    private async Task DeregisterInstance(string instanceId)
+    {
+        try
+        {
+            await ServiceDiscoveryClient.DeregisterInstanceAsync(instanceId);
+            await MessageService.Success("实例已注销");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"注销失败: {ex.Message}");
+        }
+    }
+}

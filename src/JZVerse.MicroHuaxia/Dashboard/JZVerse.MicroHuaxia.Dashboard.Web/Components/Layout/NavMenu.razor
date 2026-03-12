@@ -1,0 +1,93 @@
+@inject NavigationManager NavigationManager
+
+<Menu Theme="MenuTheme.Dark"
+      Mode="MenuMode.Inline"
+      InlineCollapsed="@Collapsed"
+      DefaultSelectedKeys="@(new[] { _selectedKey })"
+      OnMenuItemClicked="OnMenuItemClicked">
+    <MenuItem Key="home" RouterLink="/">
+        <Icon Type="@IconType.Outline.Home" Theme="outline" />
+        <span>首页</span>
+    </MenuItem>
+    <SubMenu Key="service-discovery">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Cluster" Theme="outline" />
+            <span>服务发现</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="services" RouterLink="/services">
+                <span>服务列表</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+    <SubMenu Key="config-center">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Setting" Theme="outline" />
+            <span>配置中心</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="configs" RouterLink="/configs">
+                <span>配置管理</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+    <SubMenu Key="gateway">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Api" Theme="outline" />
+            <span>网关管理</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="routes" RouterLink="/gateway/routes">
+                <span>路由管理</span>
+            </MenuItem>
+            <MenuItem Key="audit" RouterLink="/gateway/audit">
+                <span>审计日志</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+    <SubMenu Key="message-queue">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Message" Theme="outline" />
+            <span>消息队列</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="topics" RouterLink="/mq/topics">
+                <span>Topic 管理</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+    <MenuItem Key="saga" RouterLink="/saga">
+        <Icon Type="@IconType.Outline.NodeIndex" Theme="outline" />
+        <span>Saga 监控</span>
+    </MenuItem>
+</Menu>
+
+@code {
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+    private string _selectedKey = "home";
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.Uri;
+        var path = new Uri(uri).AbsolutePath;
+
+        _selectedKey = path switch
+        {
+            "/" => "home",
+            "/services" => "services",
+            "/configs" => "configs",
+            "/gateway/routes" => "routes",
+            "/gateway/audit" => "audit",
+            "/mq/topics" => "topics",
+            "/saga" => "saga",
+            _ => "home"
+        };
+    }
+
+    private void OnMenuItemClicked(MenuItem item)
+    {
+        _selectedKey = item.Key;
+    }
+}

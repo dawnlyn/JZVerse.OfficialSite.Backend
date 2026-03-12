@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+      <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.AspNetCore\JZVerse.MicroHuaxia.Dashboard.AspNetCore.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Web\JZVerse.MicroHuaxia.Dashboard.Web.csproj" />
+    <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\ConfigCenter\JZVerse.MicroHuaxia.ConfigCenter.AspNetCore\JZVerse.MicroHuaxia.ConfigCenter.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\Observability\JZVerse.MicroHuaxia.Observability.AspNetCore\JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,238 @@
+@page "/gateway/routes"
+@inject IGatewayApiClient GatewayClient
+@inject IMessageService MessageService
+
+<PageTitle>路由管理</PageTitle>
+
+<div>
+    <PageHeader Title="路由管理" SubTitle="管理 API 网关路由规则">
+        <PageHeaderExtra>
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Plus" OnClick="@AddRoute">
+                        添加路由
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Table TItem="RouteInfo"
+           DataSource="@_routes"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.Name" Title="路由名称" />
+        <PropertyColumn Property="c => c.Path" Title="匹配路径" />
+        <PropertyColumn Property="c => c.Methods" Title="HTTP 方法" Width="150">
+            @foreach (var method in context.Methods)
+            {
+                <Tag Color="@GetMethodColor(method)">@method</Tag>
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.TargetService" Title="目标服务" />
+        <PropertyColumn Property="c => c.TargetPath" Title="目标路径" />
+        <PropertyColumn Property="c => c.Enabled" Title="状态" Width="80">
+            <Switch Checked="@context.Enabled" CheckedChildren="启用" UnCheckedChildren="禁用" OnChange="@(v => ToggleRoute(context, v))" />
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Priority" Title="优先级" Width="80" />
+        <ActionColumn Title="操作" Width="150">
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Edit" OnClick="() => EditRoute(context)">
+                        编辑
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="确定要删除此路由吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeleteRoute(context.Id)">
+                        <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
+                            删除
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+            </Space>
+        </ActionColumn>
+    </Table>
+</div>
+
+@* 路由编辑模态框 *@
+<Modal Title="@(_editingRoute?.Id == null ? "添加路由" : "编辑路由")"
+       Visible="@_editModalVisible"
+       OnOk="@SaveRoute"
+       OnCancel="@(() => _editModalVisible = false)"
+       ConfirmLoading="@_saving"
+       Width="700">
+    @if (_editingRoute != null)
+    {
+        <Form Model="@_editingRoute" LabelColSpan="6" WrapperColSpan="18">
+            <FormItem Label="路由名称">
+                <Input @bind-Value="@_editingRoute.Name" Placeholder="请输入路由名称" />
+            </FormItem>
+            <FormItem Label="匹配路径">
+                <Input @bind-Value="@_editingRoute.Path" Placeholder="例如：/api/users/**" />
+            </FormItem>
+            <FormItem Label="HTTP 方法">
+                <CheckboxGroup @bind-Value="@_selectedMethods" Options="@_methodOptions" />
+            </FormItem>
+            <FormItem Label="目标服务">
+                <Input @bind-Value="@_editingRoute.TargetService" Placeholder="请输入目标服务名称" />
+            </FormItem>
+            <FormItem Label="目标路径">
+                <Input @bind-Value="@_editingRoute.TargetPath" Placeholder="请输入目标路径" />
+            </FormItem>
+            <FormItem Label="负载均衡">
+                <Select @bind-Value="@_editingRoute.LoadBalancer" TItemValue="string" TItem="string">
+                    <SelectOptions>
+                        <SelectOption Value="@("RoundRobin")" Label="轮询 (RoundRobin)" />
+                        <SelectOption Value="@("Random")" Label="随机 (Random)" />
+                        <SelectOption Value="@("WeightedRoundRobin")" Label="加权轮询" />
+                    </SelectOptions>
+                </Select>
+            </FormItem>
+            <FormItem Label="超时时间">
+                <AntDesign.InputNumber @bind-Value="@_editingRoute.TimeoutSeconds" Min="1" Max="300" />
+            </FormItem>
+            <FormItem Label="优先级">
+                <AntDesign.InputNumber @bind-Value="@_editingRoute.Priority" Min="0" Max="1000" />
+            </FormItem>
+        </Form>
+    }
+</Modal>
+
+@code {
+    private List<RouteInfo> _routes = new();
+    private bool _loading = false;
+    private bool _editModalVisible = false;
+    private bool _saving = false;
+    private RouteInfo? _editingRoute;
+    private string[] _selectedMethods = Array.Empty<string>();
+
+    private readonly CheckboxOption<string>[] _methodOptions = new[]
+    {
+        new CheckboxOption<string> { Value = "GET", Label = "GET" },
+        new CheckboxOption<string> { Value = "POST", Label = "POST" },
+        new CheckboxOption<string> { Value = "PUT", Label = "PUT" },
+        new CheckboxOption<string> { Value = "DELETE", Label = "DELETE" },
+        new CheckboxOption<string> { Value = "PATCH", Label = "PATCH" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _routes = await GatewayClient.GetRoutesAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void AddRoute()
+    {
+        _editingRoute = new RouteInfo
+        {
+            LoadBalancer = "RoundRobin",
+            TimeoutSeconds = 30,
+            Enabled = true
+        };
+        _selectedMethods = new[] { "GET", "POST" };
+        _editModalVisible = true;
+    }
+
+    private void EditRoute(RouteInfo route)
+    {
+        _editingRoute = new RouteInfo
+        {
+            Id = route.Id,
+            Name = route.Name,
+            Path = route.Path,
+            Methods = new List<string>(route.Methods),
+            TargetService = route.TargetService,
+            TargetPath = route.TargetPath,
+            Enabled = route.Enabled,
+            Priority = route.Priority,
+            LoadBalancer = route.LoadBalancer,
+            TimeoutSeconds = route.TimeoutSeconds
+        };
+        _selectedMethods = route.Methods.ToArray();
+        _editModalVisible = true;
+    }
+
+    private async Task SaveRoute()
+    {
+        if (_editingRoute == null) return;
+
+        _editingRoute.Methods = _selectedMethods.ToList();
+
+        _saving = true;
+        try
+        {
+            await GatewayClient.UpsertRouteAsync(_editingRoute);
+            await MessageService.Success("路由已保存");
+            _editModalVisible = false;
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"保存失败: {ex.Message}");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteRoute(string routeId)
+    {
+        try
+        {
+            await GatewayClient.DeleteRouteAsync(routeId);
+            await MessageService.Success("路由已删除");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"删除失败: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleRoute(RouteInfo route, bool enabled)
+    {
+        route.Enabled = enabled;
+        try
+        {
+            await GatewayClient.UpsertRouteAsync(route);
+            await MessageService.Success(enabled ? "路由已启用" : "路由已禁用");
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"操作失败: {ex.Message}");
+            route.Enabled = !enabled;
+        }
+    }
+
+    private static string GetMethodColor(string method)
+    {
+        return method.ToUpperInvariant() switch
+        {
+            "GET" => "green",
+            "POST" => "blue",
+            "PUT" => "orange",
+            "DELETE" => "red",
+            "PATCH" => "purple",
+            _ => "default"
+        };
+    }
+}

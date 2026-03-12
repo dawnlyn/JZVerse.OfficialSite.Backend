@@ -1,0 +1,213 @@
+@page "/configs"
+@inject IConfigCenterApiClient ConfigCenterClient
+@inject IMessageService MessageService
+
+<PageTitle>配置管理</PageTitle>
+
+<div>
+    <PageHeader Title="配置管理" SubTitle="管理应用配置">
+        <PageHeaderExtra>
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Row Gutter="16">
+        @* 命名空间列表 *@
+        <Col Span="8">
+            <Card Title="命名空间" Size="small">
+                <Table TItem="ConfigNamespace"
+                       DataSource="@_namespaces"
+                       Loading="@_loading"
+                       Size="TableSize.Small"
+                       OnRowClick="OnNamespaceClick"
+                       RowClassName="@(r => r.Data.Id == _selectedNamespaceId ? "ant-table-row-selected" : "")">
+                    <PropertyColumn Property="c => c.Name" Title="名称" />
+                    <PropertyColumn Property="c => c.ItemCount" Title="配置项数" Width="80" />
+                </Table>
+            </Card>
+        </Col>
+
+        @* 配置项列表 *@
+        <Col Span="16">
+            <Card Title="@($"配置项 - {_selectedNamespace?.Name ?? "请选择命名空间"}")" Size="small">
+                @if (_selectedNamespace != null)
+                {
+                    <Table TItem="ConfigItem"
+                           DataSource="@_configItems"
+                           Loading="@_loadingItems"
+                           Size="TableSize.Small">
+                        <PropertyColumn Property="c => c.Key" Title="配置键" Ellipsis />
+                        <PropertyColumn Property="c => c.Value" Title="配置值" Ellipsis>
+                            <Tooltip Title="@context.Value">
+                                <span>@(context.Value.Length > 50 ? context.Value[..50] + "..." : context.Value)</span>
+                            </Tooltip>
+                        </PropertyColumn>
+                        <PropertyColumn Property="c => c.ValueType" Title="类型" Width="80">
+                            <Tag>@context.ValueType</Tag>
+                        </PropertyColumn>
+                        <PropertyColumn Property="c => c.Version" Title="版本" Width="60" />
+                        <ActionColumn Title="操作" Width="120">
+                            <Space>
+                                <SpaceItem>
+                                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Edit" OnClick="() => EditConfig(context)">
+                                        编辑
+                                    </Button>
+                                </SpaceItem>
+                                <SpaceItem>
+                                    <Popconfirm Title="确定要删除此配置吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeleteConfig(context.Id)">
+                                        <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
+                                            删除
+                                        </Button>
+                                    </Popconfirm>
+                                </SpaceItem>
+                            </Space>
+                        </ActionColumn>
+                    </Table>
+                }
+                else
+                {
+                    <Empty Description="@("请从左侧选择命名空间")" />
+                }
+            </Card>
+        </Col>
+    </Row>
+</div>
+
+@* 配置编辑模态框 *@
+<Modal Title="@(_editingItem?.Id == null ? "新建配置" : "编辑配置")"
+       Visible="@_editModalVisible"
+       OnOk="@SaveConfig"
+       OnCancel="@(() => _editModalVisible = false)"
+       ConfirmLoading="@_saving"
+       Width="600">
+    @if (_editingItem != null)
+    {
+        <Form Model="@_editingItem" LabelColSpan="6" WrapperColSpan="18">
+            <FormItem Label="配置键">
+                <Input @bind-Value="@_editingItem.Key" Placeholder="请输入配置键" />
+            </FormItem>
+            <FormItem Label="配置值">
+                <TextArea @bind-Value="@_editingItem.Value" Rows="6" Placeholder="请输入配置值" />
+            </FormItem>
+            <FormItem Label="值类型">
+                <Select @bind-Value="@_editingItem.ValueType" TItemValue="ConfigValueType" TItem="string">
+                    <SelectOptions>
+                        <SelectOption Value="@ConfigValueType.String" Label="String" />
+                        <SelectOption Value="@ConfigValueType.Json" Label="JSON" />
+                        <SelectOption Value="@ConfigValueType.Yaml" Label="YAML" />
+                        <SelectOption Value="@ConfigValueType.Number" Label="Number" />
+                        <SelectOption Value="@ConfigValueType.Boolean" Label="Boolean" />
+                    </SelectOptions>
+                </Select>
+            </FormItem>
+            <FormItem Label="描述">
+                <TextArea @bind-Value="@_editingItem.Description" Rows="2" Placeholder="配置描述（可选）" />
+            </FormItem>
+        </Form>
+    }
+</Modal>
+
+@code {
+    private List<ConfigNamespace> _namespaces = new();
+    private List<ConfigItem> _configItems = new();
+    private bool _loading = false;
+    private bool _loadingItems = false;
+    private bool _editModalVisible = false;
+    private bool _saving = false;
+    private string? _selectedNamespaceId;
+    private ConfigNamespace? _selectedNamespace;
+    private ConfigItem? _editingItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _namespaces = await ConfigCenterClient.GetNamespacesAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnNamespaceClick(RowData<ConfigNamespace> row)
+    {
+        _selectedNamespaceId = row.Data.Id;
+        _selectedNamespace = row.Data;
+        await LoadConfigItemsAsync();
+    }
+
+    private async Task LoadConfigItemsAsync()
+    {
+        if (_selectedNamespaceId == null) return;
+
+        _loadingItems = true;
+        try
+        {
+            _configItems = await ConfigCenterClient.GetConfigItemsAsync(_selectedNamespaceId);
+        }
+        finally
+        {
+            _loadingItems = false;
+        }
+    }
+
+    private void EditConfig(ConfigItem item)
+    {
+        _editingItem = new ConfigItem
+        {
+            Id = item.Id,
+            Key = item.Key,
+            Value = item.Value,
+            NamespaceId = item.NamespaceId,
+            EnvironmentId = item.EnvironmentId,
+            ValueType = item.ValueType,
+            Description = item.Description
+        };
+        _editModalVisible = true;
+    }
+
+    private async Task SaveConfig()
+    {
+        if (_editingItem == null) return;
+
+        _saving = true;
+        try
+        {
+            await ConfigCenterClient.UpsertConfigItemAsync(_editingItem);
+            await MessageService.Success("配置已保存");
+            _editModalVisible = false;
+            await LoadConfigItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"保存失败: {ex.Message}");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteConfig(string itemId)
+    {
+        try
+        {
+            await ConfigCenterClient.DeleteConfigItemAsync(itemId);
+            await MessageService.Success("配置已删除");
+            await LoadConfigItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"删除失败: {ex.Message}");
+        }
+    }
+}

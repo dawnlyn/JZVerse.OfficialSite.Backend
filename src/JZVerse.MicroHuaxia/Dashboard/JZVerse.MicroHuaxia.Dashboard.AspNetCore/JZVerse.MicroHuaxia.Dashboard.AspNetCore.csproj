@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AntDesign" Version="0.20.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Core\JZVerse.MicroHuaxia.Dashboard.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Web\JZVerse.MicroHuaxia.Dashboard.Web.csproj" />
+  </ItemGroup>
+
+</Project>
