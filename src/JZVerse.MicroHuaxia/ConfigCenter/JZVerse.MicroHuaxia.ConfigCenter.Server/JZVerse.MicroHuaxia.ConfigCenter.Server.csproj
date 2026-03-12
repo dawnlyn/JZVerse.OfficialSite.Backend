@@ -12,5 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.ConfigCenter.Core\JZVerse.MicroHuaxia.ConfigCenter.Core.csproj" />
+    <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\Observability\JZVerse.MicroHuaxia.Observability.AspNetCore\JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
   </ItemGroup>
 </Project>

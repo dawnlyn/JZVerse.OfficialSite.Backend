@@ -97,7 +97,7 @@ public class WeightedRandomLoadBalancer : ILoadBalancer
         var randomWeight = Random.Next(totalWeight);
 
         var currentWeight = 0;
-        foreach (var instance in instances)
+        foreach (var instance in instances.OrderBy(i => i.Weight))
         {
             currentWeight += instance.Weight;
             if (randomWeight < currentWeight)

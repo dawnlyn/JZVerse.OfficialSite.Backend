@@ -13,7 +13,7 @@ public class ServiceDiscoveryClientOptions
     /// <summary>
     /// 注册中心服务器地址列表
     /// </summary>
-    public List<string> ServerUrls { get; set; } = ["http://localhost:8500"];
+    public List<string> ServerUrls { get; set; } = ["http://localhost:5100"];
 
     /// <summary>
     /// 通信协议（Http 或 Grpc）

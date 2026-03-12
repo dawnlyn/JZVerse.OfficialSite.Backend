@@ -38,7 +38,7 @@ public class HealthCheckManager(
         _checkTask = RunHealthCheckLoopAsync(_cts.Token);
 
         _logger.LogInformation(
-            "Health check manager started with interval: {Interval}s, timeout: {Timeout}s",
+            "健康检查管理器已启动，检查间隔: {Interval}秒, 心跳超时: {Timeout}秒",
             _checkIntervalSeconds,
             _heartbeatTimeoutSeconds
         );
@@ -66,7 +66,7 @@ public class HealthCheckManager(
         }
 
         _timer?.Dispose();
-        _logger.LogInformation("Health check manager stopped");
+        _logger.LogInformation("健康检查管理器已停止");
     }
 
     /// <inheritdoc />
@@ -78,7 +78,7 @@ public class HealthCheckManager(
         var instance = await _repository.GetByIdAsync(instanceId, cancellationToken);
         if (instance == null)
         {
-            return HealthCheckResult.Unhealthy($"Instance '{instanceId}' not found");
+            return HealthCheckResult.Unhealthy($"未找到实例 '{instanceId}'");
         }
 
         return await PerformHealthCheckAsync(instance, cancellationToken);
@@ -98,7 +98,7 @@ public class HealthCheckManager(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during health check loop");
+                _logger.LogError(ex, "健康检查循环期间发生错误");
             }
         }
     }
@@ -107,7 +107,7 @@ public class HealthCheckManager(
     {
         var instances = await _repository.GetAllAsync(cancellationToken);
 
-        _logger.LogDebug("Performing health checks for {Count} instances", instances.Count);
+        _logger.LogDebug("正在对 {Count} 个实例执行健康检查", instances.Count);
 
         var tasks = instances
             .Where(i => i.Enabled)
@@ -125,7 +125,7 @@ public class HealthCheckManager(
             if (heartbeatAge > TimeSpan.FromSeconds(_heartbeatTimeoutSeconds))
             {
                 _logger.LogWarning(
-                    "Instance {ServiceName}:{InstanceId} heartbeat timeout (last: {LastHeartbeat})",
+                    "实例 {ServiceName}:{InstanceId} 心跳超时 (最后心跳: {LastHeartbeat})",
                     instance.ServiceName,
                     instance.InstanceId,
                     instance.LastHeartbeatAt
@@ -149,7 +149,7 @@ public class HealthCheckManager(
                         cancellationToken
                     );
 
-                    // 清除缓存以便下次获取新数据
+                    // 清除缓存以便下次获取新数据，考虑到并发和时序问题及边缘情况，所以需要清除缓存
                     await _cache.ClearCacheAsync(instance.ServiceName, cancellationToken);
                 }
             }
@@ -165,7 +165,7 @@ public class HealthCheckManager(
                 else
                 {
                     _logger.LogDebug(
-                        "Instance {ServiceName}:{InstanceId} health check failed ({FailureCount}/{Threshold})",
+                        "实例 {ServiceName}:{InstanceId} 健康检查失败 ({FailureCount}/{Threshold})",
                         instance.ServiceName,
                         instance.InstanceId,
                         instance.FailureCount,
@@ -178,7 +178,7 @@ public class HealthCheckManager(
         {
             _logger.LogError(
                 ex,
-                "Error checking health for {ServiceName}:{InstanceId}",
+                "检查实例 {ServiceName}:{InstanceId} 健康状况时发生错误",
                 instance.ServiceName,
                 instance.InstanceId
             );
@@ -195,12 +195,12 @@ public class HealthCheckManager(
         if (checker == null)
         {
             _logger.LogDebug(
-                "No suitable health checker found for {ServiceName}:{InstanceId}",
+                "未找到适合的健康检查器用于 {ServiceName}:{InstanceId}",
                 instance.ServiceName,
                 instance.InstanceId
             );
 
-            return new() { Status = HealthStatus.Unknown, Message = "No suitable health checker found" };
+            return new() { Status = HealthStatus.Unknown, Message = "未找到适合的健康检查器" };
         }
 
         return await checker.CheckHealthAsync(instance, cancellationToken);
@@ -215,7 +215,7 @@ public class HealthCheckManager(
         if (instance.Health != HealthStatus.Unhealthy)
         {
             _logger.LogWarning(
-                "Marking instance as unhealthy: {ServiceName}:{InstanceId}, Reason: {Reason}",
+                "将实例标记为不健康: {ServiceName}:{InstanceId}, 原因: {Reason}",
                 instance.ServiceName,
                 instance.InstanceId,
                 reason

@@ -1,6 +1,6 @@
-using JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.Dashboard;
-using JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.Dashboard.Models;
-using JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.Logging;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Telemetry.Dashboard;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Telemetry.Dashboard.Models;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Telemetry.Logging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JZVerse.MicroHuaxia.ServiceDiscovery.Server.Controllers;

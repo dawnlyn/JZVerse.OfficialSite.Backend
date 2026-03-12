@@ -1,8 +1,13 @@
+using System.Diagnostics;
+using System.Text.Json;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.Resilience;
+using JZVerse.MicroHuaxia.Observability.Core.Configuration;
+using JZVerse.MicroHuaxia.Observability.Core.Formatting;
 using JZVerse.MicroHuaxia.ServiceCommunication.Core.Resilience;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.ServiceCommunication.Grpc.Interceptors;
 
@@ -30,7 +35,7 @@ public sealed class RetryInterceptor(
             }
             catch (RpcException ex)
             {
-                logger.LogWarning(ex, "gRPC call failed after retries: {Method}", context.Method.FullName);
+                logger.LogWarning(ex, "gRPC 调用重试后仍失败: {Method}", context.Method.FullName);
                 throw;
             }
         }
@@ -77,7 +82,7 @@ public sealed class CircuitBreakerInterceptor(
             }
             catch (RpcException ex)
             {
-                logger.LogWarning(ex, "gRPC call failed, circuit breaker will record failure: {Method}", context.Method.FullName);
+                logger.LogWarning(ex, "gRPC 调用失败，熔断器将记录此次失败: {Method}", context.Method.FullName);
                 throw;
             }
         }
@@ -92,20 +97,38 @@ public sealed class CircuitBreakerInterceptor(
 }
 
 /// <summary>
-/// 日志拦截器
+/// 日志拦截器 — 发起方打印发出的 gRPC 请求和收到的响应
 /// </summary>
-public sealed class LoggingInterceptor(ILogger<LoggingInterceptor> logger) : Interceptor
+public sealed class LoggingInterceptor(
+    ILogger<LoggingInterceptor> logger,
+    IOptions<ConsoleOptions> options,
+    ConsoleLogFormatter formatter) : Interceptor
 {
+    private static readonly JsonSerializerOptions JsonSerializeOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+    };
+
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
+        var opts = options.Value;
+        if (!opts.Enabled)
+        {
+            return continuation(request, context);
+        }
+
         var methodName = context.Method.FullName;
-        var startTime = DateTimeOffset.UtcNow;
 
-        logger.LogDebug("gRPC call started: {Method}", methodName);
+        // 打印请求行
+        var requestJson = TrySerializeProtobuf(request);
+        var requestLog = formatter.FormatGrpcRequest("⟹", methodName, requestJson);
+        logger.Log(LogLevel.Debug, "{Message}", requestLog);
 
+        var sw = Stopwatch.StartNew();
         var call = continuation(request, context);
 
         async Task<TResponse> LoggedResponseAsync()
@@ -113,14 +136,22 @@ public sealed class LoggingInterceptor(ILogger<LoggingInterceptor> logger) : Int
             try
             {
                 var response = await call.ResponseAsync;
-                var duration = DateTimeOffset.UtcNow - startTime;
-                logger.LogDebug("gRPC call completed: {Method} in {Duration}ms", methodName, duration.TotalMilliseconds);
+                sw.Stop();
+
+                // 打印响应行
+                var responseJson = TrySerializeProtobuf(response);
+                var responseLog = formatter.FormatGrpcResponse("⟸", "OK", sw.ElapsedMilliseconds, responseJson);
+                logger.Log(LogLevel.Debug, "{Message}", responseLog);
+
                 return response;
             }
             catch (Exception ex)
             {
-                var duration = DateTimeOffset.UtcNow - startTime;
-                logger.LogError(ex, "gRPC call failed: {Method} after {Duration}ms", methodName, duration.TotalMilliseconds);
+                sw.Stop();
+
+                var errorLog = formatter.FormatGrpcError(sw.ElapsedMilliseconds, ex);
+                logger.Log(LogLevel.Warning, ex, "{Message}", errorLog);
+
                 throw;
             }
         }
@@ -131,5 +162,17 @@ public sealed class LoggingInterceptor(ILogger<LoggingInterceptor> logger) : Int
             call.GetStatus,
             call.GetTrailers,
             call.Dispose);
+    }
+
+    private static string? TrySerializeProtobuf<T>(T message)
+    {
+        try
+        {
+            return JsonSerializer.Serialize(message, JsonSerializeOptions);
+        }
+        catch
+        {
+            return $"<{typeof(T).Name}>";
+        }
     }
 }

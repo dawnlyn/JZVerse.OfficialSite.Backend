@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Core\JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
-    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.csproj" />
+    <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Server\JZVerse.MicroHuaxia.ServiceDiscovery.Server.csproj" />
     <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.AppHost\JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.csproj" />
     <ProjectReference Include="..\..\..\src\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks.csproj" />
   </ItemGroup>

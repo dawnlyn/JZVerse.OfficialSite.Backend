@@ -61,6 +61,11 @@ public enum ResourceType
     /// 外部服务引用
     /// </summary>
     ExternalService,
+
+    /// <summary>
+    /// 前端项目
+    /// </summary>
+    Frontend,
 }
 
 /// <summary>

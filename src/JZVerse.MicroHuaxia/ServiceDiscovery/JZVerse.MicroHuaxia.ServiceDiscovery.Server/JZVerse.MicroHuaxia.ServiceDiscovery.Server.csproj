@@ -9,13 +9,24 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
+
+    <!-- OpenTelemetry 核心包 (原 Telemetry 项目依赖) -->
+    <PackageReference Include="OpenTelemetry" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
+
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-rc.2.25502.107" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Core\JZVerse.MicroHuaxia.ServiceDiscovery.Core.csproj" />
     <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks\JZVerse.MicroHuaxia.ServiceDiscovery.HealthChecks.csproj" />
-    <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry\JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.csproj" />
-
+    <ProjectReference Include="..\..\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\Observability\JZVerse.MicroHuaxia.Observability.AspNetCore\JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

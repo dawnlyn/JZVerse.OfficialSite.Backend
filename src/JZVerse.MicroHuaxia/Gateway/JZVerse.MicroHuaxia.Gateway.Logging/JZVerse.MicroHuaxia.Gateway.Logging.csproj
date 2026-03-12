@@ -21,7 +21,7 @@
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.11.0" />
     
     <!-- SQLite -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-rc.2.25501.10" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup>

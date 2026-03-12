@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.Logging;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Telemetry.Logging;
 
 namespace JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration;
 

@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceCommunication.Abstractions\JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.csproj" />
     <ProjectReference Include="..\..\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions\JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Observability\JZVerse.MicroHuaxia.Observability.Core\JZVerse.MicroHuaxia.Observability.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,5 @@
+using JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions;
+using JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.Adapters;
 using JZVerse.MicroHuaxia.ServiceDiscovery.Client;
 using JZVerse.MicroHuaxia.ServiceDiscovery.Client.BackgroundServices;
 using JZVerse.MicroHuaxia.ServiceDiscovery.Client.Configuration;
@@ -47,6 +49,35 @@ public static class ServiceDiscoveryClientExtensions
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // 注册后台服务（自动注册、心跳）
+        services.AddHostedService<ServiceRegistrationBackgroundService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// 添加服务发现客户端（含 IServiceDiscovery 适配器，用于 Gateway 独立模式）
+    /// 注册 IServiceDiscoveryClient + IServiceDiscovery（容错适配器）+ 后台注册服务
+    /// </summary>
+    public static IServiceCollection AddServiceDiscoveryClientWithDiscovery(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        // 绑定配置
+        services.Configure<ServiceDiscoveryClientOptions>(
+            configuration.GetSection(ServiceDiscoveryClientOptions.SectionName)
+        );
+
+        // 注册 HTTP 客户端
+        services.AddHttpClient<IServiceDiscoveryClient, HttpServiceDiscoveryClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        // 注册 IServiceDiscovery 适配器（容错，SD 不可用时返回空结果）
+        services.AddSingleton<IServiceDiscovery, ClientBasedServiceDiscovery>();
 
         // 注册后台服务（自动注册、心跳）
         services.AddHostedService<ServiceRegistrationBackgroundService>();

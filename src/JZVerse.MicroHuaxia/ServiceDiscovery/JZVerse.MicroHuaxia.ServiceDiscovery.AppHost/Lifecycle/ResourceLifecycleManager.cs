@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.Helpers;
 using JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.Models;
 using Microsoft.Extensions.Logging;
 
@@ -39,6 +40,9 @@ public sealed class ResourceLifecycleManager(ILogger<ResourceLifecycleManager> _
                     break;
                 case ContainerResource container:
                     await StartContainerAsync(container, cancellationToken);
+                    break;
+                case FrontendResource frontend:
+                    await StartFrontendAsync(frontend, cancellationToken);
                     break;
                 case ExternalServiceResource:
                     // 外部服务不需要启动
@@ -98,6 +102,10 @@ public sealed class ResourceLifecycleManager(ILogger<ResourceLifecycleManager> _
             if (resource is ContainerResource container)
             {
                 await StopContainerAsync(container, cancellationToken);
+            }
+            else if (resource is FrontendResource frontend && frontend.DeploymentMode != DeploymentMode.LocalDevelopment)
+            {
+                await StopFrontendContainerAsync(frontend, cancellationToken);
             }
 
             resource.State = ResourceState.Stopped;
@@ -229,6 +237,303 @@ public sealed class ResourceLifecycleManager(ILogger<ResourceLifecycleManager> _
         process.Start();
         await process.WaitForExitAsync(cancellationToken);
     }
+
+    #region Frontend Resource Methods
+
+    private async Task StartFrontendAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        switch (frontend.DeploymentMode)
+        {
+            case DeploymentMode.LocalDevelopment:
+                await StartFrontendLocalAsync(frontend, cancellationToken);
+                break;
+            case DeploymentMode.ContainerExisting:
+                await StartFrontendContainerExistingAsync(frontend, cancellationToken);
+                break;
+            case DeploymentMode.ContainerDockerfile:
+                await StartFrontendWithDockerfileAsync(frontend, cancellationToken);
+                break;
+            case DeploymentMode.ContainerGit:
+                await StartFrontendFromGitAsync(frontend, cancellationToken);
+                break;
+        }
+    }
+
+    private async Task StartFrontendLocalAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        // 检测包管理器
+        var packageManager = frontend.PackageManager;
+        if (packageManager == PackageManager.Auto)
+        {
+            packageManager = await PackageManagerDetector.DetectAsync(frontend.ProjectPath);
+            _logger.LogInformation("Detected package manager: {PackageManager} for {Name}", packageManager, frontend.Name);
+        }
+
+        // 检查包管理器是否可用
+        if (!PackageManagerDetector.IsAvailable(packageManager))
+        {
+            _logger.LogWarning(
+                "Package manager {PackageManager} not found in PATH, falling back to npm",
+                packageManager
+            );
+            packageManager = PackageManager.Npm;
+        }
+
+        var executableName = PackageManagerDetector.GetExecutableName(packageManager);
+        var runCommand = PackageManagerDetector.GetRunCommand(packageManager, frontend.StartCommand);
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executableName,
+            Arguments = runCommand,
+            WorkingDirectory = frontend.WorkingDirectory ?? frontend.ProjectPath,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        // 注入环境变量
+        foreach (var (key, value) in frontend.Environment)
+        {
+            startInfo.Environment[key] = value;
+        }
+
+        var process = new Process { StartInfo = startInfo };
+        SetupProcessLogging(process, frontend.Name);
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        _processes[frontend.Name] = process;
+        frontend.State = ResourceState.Running;
+
+        _logger.LogInformation(
+            "Frontend started: {Name} (PID: {PID}) using {PackageManager} {Command}",
+            frontend.Name,
+            process.Id,
+            executableName,
+            runCommand
+        );
+    }
+
+    private async Task StartFrontendContainerExistingAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        var args = BuildFrontendDockerRunArgs(frontend);
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "docker",
+            Arguments = args,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        var process = new Process { StartInfo = startInfo };
+        process.Start();
+
+        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Failed to start frontend container: {error}");
+        }
+
+        frontend.State = ResourceState.Running;
+        var containerId = output.Trim().Length >= 12 ? output.Trim()[..12] : output.Trim();
+        _logger.LogInformation("Frontend container started: {Name} (ID: {ContainerId})", frontend.Name, containerId);
+    }
+
+    private async Task StartFrontendWithDockerfileAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        var dockerConfig = frontend.DockerConfig;
+        var imageName = $"{frontend.Name}:{dockerConfig.ImageTag}";
+        var contextPath = dockerConfig.ContextPath ?? Path.GetDirectoryName(dockerConfig.DockerfilePath) ?? ".";
+
+        // Step 1: Build the image
+        _logger.LogInformation("Building frontend image: {ImageName} from {Dockerfile}", imageName, dockerConfig.DockerfilePath);
+
+        var buildArgs = new List<string>
+        {
+            "build",
+            "-t", imageName,
+            "-f", $"\"{dockerConfig.DockerfilePath}\"",
+        };
+
+        foreach (var (key, value) in dockerConfig.BuildArgs)
+        {
+            buildArgs.Add("--build-arg");
+            buildArgs.Add($"{key}={value}");
+        }
+
+        // 注入环境变量作为构建参数
+        foreach (var (key, value) in frontend.Environment)
+        {
+            buildArgs.Add("--build-arg");
+            buildArgs.Add($"{key}={value}");
+        }
+
+        buildArgs.Add($"\"{contextPath}\"");
+
+        var buildStartInfo = new ProcessStartInfo
+        {
+            FileName = "docker",
+            Arguments = string.Join(" ", buildArgs),
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        var buildProcess = new Process { StartInfo = buildStartInfo };
+        SetupProcessLogging(buildProcess, $"{frontend.Name}-build");
+
+        buildProcess.Start();
+        buildProcess.BeginOutputReadLine();
+        buildProcess.BeginErrorReadLine();
+
+        await buildProcess.WaitForExitAsync(cancellationToken);
+
+        if (buildProcess.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"Failed to build frontend image: {frontend.Name}");
+        }
+
+        _logger.LogInformation("Frontend image built: {ImageName}", imageName);
+
+        // Step 2: Run the container
+        dockerConfig.ContainerImage = frontend.Name;
+        await StartFrontendContainerExistingAsync(frontend, cancellationToken);
+    }
+
+    private async Task StartFrontendFromGitAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        var dockerConfig = frontend.DockerConfig;
+        var tempDir = Path.Combine(Path.GetTempPath(), $"frontend-{frontend.Name}-{Guid.NewGuid():N}");
+
+        try
+        {
+            // Step 1: Clone the repository
+            _logger.LogInformation("Cloning repository: {Url} to {TempDir}", dockerConfig.GitRepositoryUrl, tempDir);
+
+            var cloneArgs = $"clone --depth 1 --branch {dockerConfig.GitBranch} \"{dockerConfig.GitRepositoryUrl}\" \"{tempDir}\"";
+            var cloneStartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = cloneArgs,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+
+            var cloneProcess = new Process { StartInfo = cloneStartInfo };
+            cloneProcess.Start();
+
+            var cloneError = await cloneProcess.StandardError.ReadToEndAsync(cancellationToken);
+            await cloneProcess.WaitForExitAsync(cancellationToken);
+
+            if (cloneProcess.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"Failed to clone repository: {cloneError}");
+            }
+
+            _logger.LogInformation("Repository cloned: {Name}", frontend.Name);
+
+            // Step 2: Detect framework and generate Dockerfile
+            var framework = await FrontendFrameworkDetector.DetectAsync(tempDir);
+            var packageManager = await PackageManagerDetector.DetectAsync(tempDir);
+
+            _logger.LogInformation(
+                "Detected framework: {Framework}, package manager: {PackageManager}",
+                framework,
+                packageManager
+            );
+
+            var dockerfilePath = Path.Combine(tempDir, "Dockerfile.generated");
+            await DockerfileGenerator.GenerateAsync(tempDir, dockerfilePath, framework, packageManager, dockerConfig.BuildArgs);
+
+            _logger.LogInformation("Generated Dockerfile: {Path}", dockerfilePath);
+
+            // Step 3: Build and run
+            dockerConfig.DockerfilePath = dockerfilePath;
+            dockerConfig.ContextPath = tempDir;
+
+            await StartFrontendWithDockerfileAsync(frontend, cancellationToken);
+        }
+        finally
+        {
+            // Cleanup temp directory (optional, might want to keep for debugging)
+            // Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    private async Task StopFrontendContainerAsync(FrontendResource frontend, CancellationToken cancellationToken)
+    {
+        var containerName = frontend.DockerConfig.ContainerName ?? frontend.Name;
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "docker",
+            Arguments = $"stop {containerName}",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        var process = new Process { StartInfo = startInfo };
+        process.Start();
+        await process.WaitForExitAsync(cancellationToken);
+
+        // 尝试删除容器
+        startInfo.Arguments = $"rm {containerName}";
+        process = new Process { StartInfo = startInfo };
+        process.Start();
+        await process.WaitForExitAsync(cancellationToken);
+    }
+
+    private static string BuildFrontendDockerRunArgs(FrontendResource frontend)
+    {
+        var dockerConfig = frontend.DockerConfig;
+        var containerName = dockerConfig.ContainerName ?? frontend.Name;
+
+        var args = new List<string>
+        {
+            "run",
+            "-d",
+            $"--name {containerName}",
+        };
+
+        foreach (var endpoint in frontend.Endpoints)
+        {
+            var hostPort = endpoint.Port ?? endpoint.ContainerPort ?? 80;
+            var containerPort = endpoint.ContainerPort ?? hostPort;
+            args.Add($"-p {hostPort}:{containerPort}");
+        }
+
+        foreach (var (key, value) in frontend.Environment)
+        {
+            args.Add($"-e {key}={value}");
+        }
+
+        foreach (var volume in dockerConfig.Volumes)
+        {
+            var mountFlag = volume.ReadOnly ? ":ro" : "";
+            args.Add($"-v {volume.Source}:{volume.Target}{mountFlag}");
+        }
+
+        args.Add(dockerConfig.GetFullImageName());
+
+        return string.Join(" ", args);
+    }
+
+    #endregion
 
     private static string BuildDotnetRunArgs(ProjectResource project)
     {

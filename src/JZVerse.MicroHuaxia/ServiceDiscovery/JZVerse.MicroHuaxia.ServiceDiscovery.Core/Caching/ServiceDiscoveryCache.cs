@@ -100,10 +100,7 @@ public class NullServiceDiscoveryCache : IServiceDiscoveryCache
         string serviceName,
         IReadOnlyList<ServiceInstance> instances,
         CancellationToken cancellationToken = default
-    )
-    {
-        return Task.CompletedTask;
-    }
+    ) => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task ClearCacheAsync(string? serviceName = null, CancellationToken cancellationToken = default) =>

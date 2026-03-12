@@ -190,7 +190,7 @@ public class InMemoryServiceInstanceRepository : IServiceInstanceRepository
         if (!pattern.Contains('*'))
             return serviceName == pattern;
 
-        var regexPattern = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+        var regexPattern = $"^{Regex.Escape(pattern).Replace("\\*", ".*")}$";
         return Regex.IsMatch(serviceName, regexPattern);
     }
 }

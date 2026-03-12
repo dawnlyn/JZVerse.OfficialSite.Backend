@@ -265,13 +265,7 @@ public sealed class HttpRequestForwarder : IRequestForwarder
         HttpContext context,
         CancellationToken cancellationToken)
     {
-        // 优先使用直接地址
-        if (!string.IsNullOrEmpty(destination.DirectAddress))
-        {
-            return destination.DirectAddress;
-        }
-
-        // 使用服务发现
+        // 1. 优先使用服务发现
         if (!string.IsNullOrEmpty(destination.ServiceName))
         {
             if (_instanceSelector is not null)
@@ -283,7 +277,8 @@ public sealed class HttpRequestForwarder : IRequestForwarder
                 };
 
                 var instance = await _instanceSelector.SelectAsync(destination.ServiceName, selectionContext, cancellationToken);
-                return instance?.Address;
+                if (instance?.Address is not null)
+                    return instance.Address;
             }
 
             if (_serviceDiscovery is not null)
@@ -300,9 +295,17 @@ public sealed class HttpRequestForwarder : IRequestForwarder
                     return healthyInstances[index].Address;
                 }
             }
+
+            // SD 未返回结果，降级到直接地址
+            if (!string.IsNullOrEmpty(destination.DirectAddress))
+            {
+                _logger.LogWarning("服务发现未找到 {ServiceName} 的可用实例，降级到 DirectAddress: {DirectAddress}",
+                    destination.ServiceName, destination.DirectAddress);
+            }
         }
 
-        return null;
+        // 2. 兜底：使用直接地址
+        return destination.DirectAddress;
     }
 
     private static HttpRequestMessage CreateRequestMessage(HttpContext context, Uri targetUri, ITracePropagator? tracePropagator = null)

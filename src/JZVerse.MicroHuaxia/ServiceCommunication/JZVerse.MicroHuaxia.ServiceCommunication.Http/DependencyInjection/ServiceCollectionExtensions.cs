@@ -22,8 +22,9 @@ public static class ServiceCollectionExtensions
         services.TryAddTransient<ServiceDiscoveryHandler>();
 
         // 配置 HttpClient
+        // DiagnosticsLoggingHandler 已迁移到 Observability.AspNetCore，通过 AddObservability() 注册
         services.AddHttpClient("ServiceCommunication")
-            .AddHttpMessageHandler<ServiceDiscoveryHandler>()
+            .AddHttpMessageHandler<ServiceDiscoveryHandler>()      // 解析服务名→真实地址
             .ConfigureHttpClient(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);

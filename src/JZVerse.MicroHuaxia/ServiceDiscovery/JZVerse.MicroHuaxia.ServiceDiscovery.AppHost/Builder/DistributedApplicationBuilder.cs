@@ -1,3 +1,4 @@
+using JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.Helpers;
 using JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.Models;
 
 namespace JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.Builder;
@@ -77,6 +78,54 @@ public sealed class DistributedApplicationBuilder
     }
 
     /// <summary>
+    /// 添加前端项目 (本地开发模式)
+    /// </summary>
+    /// <param name="name">资源名称</param>
+    /// <param name="projectPath">前端项目根目录路径</param>
+    /// <remarks>
+    /// 自动检测包管理器 (npm/yarn/pnpm) 和前端框架 (Vite/Next.js/Nuxt.js 等)。
+    /// 可通过 WithPackageManager 和 WithCommand 方法覆盖默认行为。
+    /// </remarks>
+    public FrontendResourceBuilder AddFrontendProject(string name, string projectPath)
+    {
+        var resolvedPath = ResolveFrontendProjectPath(projectPath);
+        var resource = new FrontendResource(name, resolvedPath)
+        {
+            DeploymentMode = DeploymentMode.LocalDevelopment,
+        };
+
+        // 异步检测框架类型，但这里我们同步执行
+        resource.DetectedFramework = DetectFrontendFrameworkSync(resolvedPath);
+
+        _resources.Add(resource);
+        return new FrontendResourceBuilder(this, resource);
+    }
+
+    /// <summary>
+    /// 添加前端容器 (使用现有镜像)
+    /// </summary>
+    /// <param name="name">资源名称</param>
+    /// <param name="image">容器镜像名称</param>
+    public FrontendResourceBuilder AddFrontendContainer(string name, string image)
+    {
+        var resource = new FrontendResource(name, image, DeploymentMode.ContainerExisting);
+        _resources.Add(resource);
+        return new FrontendResourceBuilder(this, resource);
+    }
+
+    /// <summary>
+    /// 从 Git 仓库添加前端项目 (自动生成 Dockerfile 并构建)
+    /// </summary>
+    /// <param name="name">资源名称</param>
+    /// <param name="repositoryUrl">Git 仓库地址</param>
+    public FrontendResourceBuilder AddFrontendFromGit(string name, string repositoryUrl)
+    {
+        var resource = new FrontendResource(name, repositoryUrl, DeploymentMode.ContainerGit);
+        _resources.Add(resource);
+        return new FrontendResourceBuilder(this, resource);
+    }
+
+    /// <summary>
     /// 添加参数
     /// </summary>
     public DistributedApplicationBuilder WithParameter(string name, object value)
@@ -140,6 +189,20 @@ public sealed class DistributedApplicationBuilder
                     );
             }
         }
+    }
+
+    private string ResolveFrontendProjectPath(string projectPath)
+    {
+        if (Path.IsPathRooted(projectPath))
+            return projectPath;
+
+        return !string.IsNullOrEmpty(BasePath) ? Path.Combine(BasePath, projectPath) : Path.GetFullPath(projectPath);
+    }
+
+    private static FrontendFramework DetectFrontendFrameworkSync(string projectPath)
+    {
+        // 同步执行异步方法 (在构建阶段可以接受)
+        return FrontendFrameworkDetector.DetectAsync(projectPath).GetAwaiter().GetResult();
     }
 }
 

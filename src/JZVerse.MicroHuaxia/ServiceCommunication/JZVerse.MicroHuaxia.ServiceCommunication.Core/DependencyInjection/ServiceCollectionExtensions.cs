@@ -1,3 +1,5 @@
+using JZVerse.MicroHuaxia.Observability.Core.Configuration;
+using JZVerse.MicroHuaxia.Observability.Core.Formatting;
 using JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.Configuration;
 using JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.LoadBalancing;
 using JZVerse.MicroHuaxia.ServiceCommunication.Abstractions.Resilience;
@@ -6,6 +8,7 @@ using JZVerse.MicroHuaxia.ServiceCommunication.Core.Resilience;
 using JZVerse.MicroHuaxia.ServiceCommunication.Core.ServiceDiscovery;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.ServiceCommunication.Core.DependencyInjection;
 
@@ -45,6 +48,15 @@ public static class ServiceCollectionExtensions
 
         // 注册服务实例选择器
         services.TryAddSingleton<IServiceInstanceSelector, ServiceInstanceSelector>();
+
+        // 注册诊断日志基础设施 (使用 Observability.Core 类型)
+        services.Configure<ConsoleOptions>(_ => { });
+        services.TryAddSingleton<ConsoleLogFormatter>();
+        services.TryAddSingleton<SafeJsonSerializer>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<ConsoleOptions>>().Value;
+            return new SafeJsonSerializer(opts.MaxPayloadLength, opts.SensitiveFields);
+        });
 
         return services;
     }

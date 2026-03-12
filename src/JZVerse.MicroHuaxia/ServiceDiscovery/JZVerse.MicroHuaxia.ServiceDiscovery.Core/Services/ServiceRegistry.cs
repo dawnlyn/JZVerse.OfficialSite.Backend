@@ -82,7 +82,7 @@ public class ServiceRegistry(
             activity?.SetTag("sd.registration.duration_ms", elapsed.TotalMilliseconds);
 
             _logger.LogInformation(
-                "Service instance registered: {ServiceName}:{InstanceId} at {Address} in {ElapsedMs:F2}ms",
+                "服务实例已注册: {ServiceName}:{InstanceId} 地址: {Address} 耗时: {ElapsedMs:F2}ms",
                 instance.ServiceName,
                 instance.InstanceId,
                 instance.Address,
@@ -119,7 +119,7 @@ public class ServiceRegistry(
         var instance = await _repository.GetByIdAsync(instanceId, cancellationToken);
         if (instance == null)
         {
-            _logger.LogWarning("Attempted to deregister non-existent instance: {InstanceId}", instanceId);
+            _logger.LogWarning("尝试注销不存在的实例: {InstanceId}", instanceId);
             activity?.SetStatus(ActivityStatusCode.Error, "Instance not found");
             return false;
         }
@@ -131,7 +131,7 @@ public class ServiceRegistry(
         if (result)
         {
             _logger.LogInformation(
-                "Service instance deregistered: {ServiceName}:{InstanceId}",
+                "服务实例已注销: {ServiceName}:{InstanceId}",
                 instance.ServiceName,
                 instance.InstanceId
             );
@@ -160,7 +160,7 @@ public class ServiceRegistry(
         var instance = await _repository.GetByIdAsync(instanceId, cancellationToken);
         if (instance == null)
         {
-            _logger.LogWarning("Heartbeat received for non-existent instance: {InstanceId}", instanceId);
+            _logger.LogWarning("收到不存在实例的心跳: {InstanceId}", instanceId);
             activity?.SetStatus(ActivityStatusCode.Error, "Instance not found");
             return false;
         }
@@ -187,7 +187,7 @@ public class ServiceRegistry(
         if (result && oldHealth != instance.Health)
         {
             _logger.LogInformation(
-                "Service instance health restored via heartbeat: {ServiceName}:{InstanceId}",
+                "通过心跳恢复服务实例健康状态: {ServiceName}:{InstanceId}",
                 instance.ServiceName,
                 instance.InstanceId
             );
@@ -238,7 +238,7 @@ public class ServiceRegistry(
         if (result && oldStatus != status)
         {
             _logger.LogInformation(
-                "Service instance health changed: {ServiceName}:{InstanceId} from {OldStatus} to {NewStatus}",
+                "服务实例健康状态变更: {ServiceName}:{InstanceId} 从 {OldStatus} 变更为 {NewStatus}",
                 instance.ServiceName,
                 instance.InstanceId,
                 oldStatus,
@@ -298,7 +298,7 @@ public class ServiceRegistry(
         if (result)
         {
             _logger.LogInformation(
-                "Service instance metadata updated: {ServiceName}:{InstanceId}",
+                "服务实例元数据已更新: {ServiceName}:{InstanceId}",
                 instance.ServiceName,
                 instance.InstanceId
             );

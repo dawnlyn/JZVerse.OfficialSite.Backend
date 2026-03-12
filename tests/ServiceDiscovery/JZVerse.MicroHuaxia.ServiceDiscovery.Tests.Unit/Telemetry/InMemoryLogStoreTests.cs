@@ -1,5 +1,5 @@
 using FluentAssertions;
-using JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.Logging;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Telemetry.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Unit.Telemetry;

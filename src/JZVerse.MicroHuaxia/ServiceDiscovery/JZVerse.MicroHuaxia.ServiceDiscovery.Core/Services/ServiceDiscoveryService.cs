@@ -7,11 +7,11 @@ namespace JZVerse.MicroHuaxia.ServiceDiscovery.Core.Services;
 /// <summary>
 /// 服务发现实现
 /// </summary>
-public class ServiceDiscovery(
+public class ServiceDiscoveryService(
     IServiceInstanceRepository _repository,
     IServiceDiscoveryCache _cache,
     ILoadBalancer _loadBalancer,
-    ILogger<ServiceDiscovery> _logger
+    ILogger<ServiceDiscoveryService> _logger
 ) : IServiceDiscovery
 {
     /// <inheritdoc />
@@ -22,7 +22,7 @@ public class ServiceDiscovery(
     {
         var instances = await _repository.QueryAsync(query, cancellationToken);
 
-        _logger.LogDebug("Discovered {Count} instances matching query", instances.Count);
+        _logger.LogDebug("发现 {Count} 个匹配查询的服务实例", instances.Count);
 
         return instances;
     }
@@ -39,12 +39,12 @@ public class ServiceDiscovery(
             var cached = await _cache.GetCachedInstancesAsync(serviceName, cancellationToken);
             if (cached != null)
             {
-                _logger.LogDebug("Retrieved {Count} instances for {ServiceName} from cache", cached.Count, serviceName);
+                _logger.LogDebug("从缓存中获取到 {Count} 个 {ServiceName} 的服务实例", cached.Count, serviceName);
                 return cached;
             }
         }
 
-        // 从仓储查询
+        // 如果缓存没有，从仓储查询
         var query = new ServiceQuery
         {
             ServiceName = serviceName,
@@ -60,7 +60,7 @@ public class ServiceDiscovery(
             await _cache.SetCachedInstancesAsync(serviceName, instances, cancellationToken);
         }
 
-        _logger.LogDebug("Retrieved {Count} instances for {ServiceName} from repository", instances.Count, serviceName);
+        _logger.LogDebug("从仓储中获取到 {Count} 个 {ServiceName} 的服务实例", instances.Count, serviceName);
 
         return instances;
     }
@@ -75,7 +75,7 @@ public class ServiceDiscovery(
 
         if (instances.Count == 0)
         {
-            _logger.LogWarning("No available instances found for service: {ServiceName}", serviceName);
+            _logger.LogWarning("未找到服务 {ServiceName} 的可用实例", serviceName);
             return null;
         }
 
@@ -83,10 +83,10 @@ public class ServiceDiscovery(
         var selected = _loadBalancer.Select(instances);
 
         _logger.LogDebug(
-            "Selected instance {InstanceId} for service {ServiceName} using {LoadBalancer}",
-            selected?.InstanceId,
+            "使用 {LoadBalancer} 负载均衡器为服务 {ServiceName} 选择了实例 {InstanceId}",
+            _loadBalancer.Name,
             serviceName,
-            _loadBalancer.Name
+            selected?.InstanceId
         );
 
         return selected;

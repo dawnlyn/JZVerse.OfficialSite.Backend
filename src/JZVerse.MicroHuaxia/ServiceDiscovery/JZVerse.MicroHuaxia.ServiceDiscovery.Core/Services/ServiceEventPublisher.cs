@@ -27,7 +27,7 @@ public class ServiceEventPublisher(ILogger<ServiceEventPublisher> _logger) : ISe
         }
 
         _logger.LogDebug(
-            "Publishing event {EventType} for {ServiceName}:{InstanceId} to {ListenerCount} listeners",
+            "正在发布事件 {EventType}，服务: {ServiceName}:{InstanceId}，监听器数量: {ListenerCount}",
             @event.EventType,
             @event.Instance.ServiceName,
             @event.Instance.InstanceId,
@@ -44,7 +44,7 @@ public class ServiceEventPublisher(ILogger<ServiceEventPublisher> _logger) : ISe
             {
                 _logger.LogError(
                     ex,
-                    "Error in event listener while processing {EventType} for {InstanceId}",
+                    "事件监听器处理 {EventType} 时发生错误，实例ID: {InstanceId}",
                     @event.EventType,
                     @event.Instance.InstanceId
                 );
@@ -62,7 +62,7 @@ public class ServiceEventPublisher(ILogger<ServiceEventPublisher> _logger) : ISe
             if (!_listeners.Contains(listener))
             {
                 _listeners.Add(listener);
-                _logger.LogDebug("Event listener subscribed: {ListenerType}", listener.GetType().Name);
+                _logger.LogDebug("事件监听器已订阅: {ListenerType}", listener.GetType().Name);
             }
         }
     }
@@ -74,7 +74,7 @@ public class ServiceEventPublisher(ILogger<ServiceEventPublisher> _logger) : ISe
         {
             if (_listeners.Remove(listener))
             {
-                _logger.LogDebug("Event listener unsubscribed: {ListenerType}", listener.GetType().Name);
+                _logger.LogDebug("事件监听器已取消订阅: {ListenerType}", listener.GetType().Name);
             }
         }
     }

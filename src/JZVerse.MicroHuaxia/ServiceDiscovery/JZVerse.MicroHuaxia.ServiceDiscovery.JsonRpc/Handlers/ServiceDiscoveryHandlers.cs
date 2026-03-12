@@ -18,6 +18,22 @@ public sealed record RegisterParams
     public string? BasePath { get; init; }
     public List<string>? Tags { get; init; }
     public int Weight { get; init; } = 100;
+    public int HeartbeatIntervalSeconds { get; init; } = 30;
+    public Dictionary<string, string>? Metadata { get; init; }
+    public HealthCheckParams? HealthCheck { get; init; }
+}
+
+/// <summary>
+/// 健康检查参数
+/// </summary>
+public sealed record HealthCheckParams
+{
+    public bool EnableActiveCheck { get; init; } = true;
+    public int ActiveCheckIntervalSeconds { get; init; } = 10;
+    public string Endpoint { get; init; } = "/health";
+    public int TimeoutSeconds { get; init; } = 5;
+    public int FailureThreshold { get; init; } = 3;
+    public int SuccessThreshold { get; init; } = 2;
 }
 
 /// <summary>
@@ -33,7 +49,7 @@ public sealed class RegisterHandler(IServiceRegistry serviceRegistry) : JsonRpcH
 
         var registration = new ServiceRegistration
         {
-            InstanceId = parameters.InstanceId,
+            InstanceId = string.IsNullOrEmpty(parameters.InstanceId) ? null : parameters.InstanceId,
             ServiceName = parameters.ServiceName,
             Version = parameters.Version,
             Host = parameters.Host,
@@ -42,6 +58,20 @@ public sealed class RegisterHandler(IServiceRegistry serviceRegistry) : JsonRpcH
             BasePath = parameters.BasePath,
             Tags = parameters.Tags ?? [],
             Weight = parameters.Weight,
+            HeartbeatIntervalSeconds = parameters.HeartbeatIntervalSeconds,
+            Metadata = new ServiceMetadata
+            {
+                Properties = parameters.Metadata ?? []
+            },
+            HealthCheck = parameters.HealthCheck is not null ? new HealthCheckConfiguration
+            {
+                EnableActiveCheck = parameters.HealthCheck.EnableActiveCheck,
+                ActiveCheckIntervalSeconds = parameters.HealthCheck.ActiveCheckIntervalSeconds,
+                Endpoint = parameters.HealthCheck.Endpoint,
+                TimeoutSeconds = parameters.HealthCheck.TimeoutSeconds,
+                FailureThreshold = parameters.HealthCheck.FailureThreshold,
+                SuccessThreshold = parameters.HealthCheck.SuccessThreshold,
+            } : null,
         };
 
         return await serviceRegistry.RegisterAsync(registration, cancellationToken);
@@ -146,6 +176,8 @@ public sealed record DiscoverParams
     public List<string>? Tags { get; init; }
     public bool OnlyHealthy { get; init; } = true;
     public bool OnlyEnabled { get; init; } = true;
+    public string? Environment { get; init; }
+    public string? Region { get; init; }
 }
 
 /// <summary>
@@ -161,9 +193,11 @@ public sealed class DiscoverHandler(IServiceDiscovery serviceDiscovery) : JsonRp
         {
             ServiceName = parameters?.ServiceName,
             Version = parameters?.Version,
-            Tags = parameters?.Tags,
+            Tags = parameters?.Tags is { Count: > 0 } ? parameters.Tags : null,
             OnlyHealthy = parameters?.OnlyHealthy ?? true,
             OnlyEnabled = parameters?.OnlyEnabled ?? true,
+            Environment = parameters?.Environment,
+            Region = parameters?.Region,
         };
 
         return await serviceDiscovery.DiscoverAsync(query, cancellationToken);
@@ -180,5 +214,28 @@ public sealed class GetServiceNamesHandler(IServiceDiscovery serviceDiscovery) :
     protected override async Task<IReadOnlyList<string>?> ExecuteAsync(CancellationToken cancellationToken)
     {
         return await serviceDiscovery.GetServiceNamesAsync(cancellationToken);
+    }
+}
+
+/// <summary>
+/// 更新健康状态请求参数
+/// </summary>
+public sealed record UpdateHealthStatusParams
+{
+    public required string InstanceId { get; init; }
+    public required HealthStatus Status { get; init; }
+}
+
+/// <summary>
+/// 服务发现 - 更新健康状态处理器
+/// </summary>
+public sealed class UpdateHealthStatusHandler(IServiceRegistry serviceRegistry) : JsonRpcHandler<UpdateHealthStatusParams, bool>
+{
+    public override string Method => "ServiceDiscovery.UpdateHealthStatus";
+
+    protected override async Task<bool> ExecuteAsync(UpdateHealthStatusParams? parameters, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        return await serviceRegistry.UpdateHealthStatusAsync(parameters.InstanceId, parameters.Status, cancellationToken);
     }
 }

@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddJsonRpcHandler<GetInstanceHandler>();
         services.AddJsonRpcHandler<DiscoverHandler>();
         services.AddJsonRpcHandler<GetServiceNamesHandler>();
+        services.AddJsonRpcHandler<UpdateHealthStatusHandler>();
 
         return services;
     }

@@ -1,5 +1,8 @@
+using JZVerse.MicroHuaxia.MessageQueue.Abstractions.Routing;
 using JZVerse.MicroHuaxia.MessageQueue.Abstractions.Storage;
 using JZVerse.MicroHuaxia.MessageQueue.Core;
+using JZVerse.MicroHuaxia.MessageQueue.Core.Routing;
+using JZVerse.MicroHuaxia.MessageQueue.Core.Subscription;
 using JZVerse.MicroHuaxia.MessageQueue.Core.Transaction;
 using JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp;
 using JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog;
@@ -29,6 +32,13 @@ public static class BrokerServiceExtensions
 
         // 添加核心服务
         services.AddMessageQueueCore();
+
+        // BrokerServer 需要具体类型，而 AddMessageQueueCore 只注册了接口类型
+        // 这里通过工厂方法将具体类型映射到已注册的接口实现，确保共享同一实例
+        services.TryAddSingleton(sp => (RoutingEngine)sp.GetRequiredService<IRoutingEngine>());
+        services.TryAddSingleton(sp => (SubscriptionManager)sp.GetRequiredService<ISubscriptionManager>());
+        services.TryAddSingleton(sp => (ExchangeManager)sp.GetRequiredService<IExchangeManager>());
+        services.TryAddSingleton(sp => (QueueManager)sp.GetRequiredService<IQueueManager>());
 
         // 根据配置选择存储
         switch (options.StorageType)

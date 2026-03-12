@@ -1,7 +1,11 @@
+using System.Diagnostics;
 using System.Text.Json;
+using JZVerse.MicroHuaxia.Observability.Core.Configuration;
+using JZVerse.MicroHuaxia.Observability.Core.Formatting;
 using JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.Protocol;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.Server;
 
@@ -11,8 +15,12 @@ namespace JZVerse.MicroHuaxia.ServiceCommunication.JsonRpc.Server;
 public sealed class JsonRpcMiddleware(
     RequestDelegate next,
     JsonRpcMethodRegistry registry,
-    ILogger<JsonRpcMiddleware> logger)
+    ILogger<JsonRpcMiddleware> logger,
+    IOptions<ConsoleOptions> diagnosticsOptions,
+    ConsoleLogFormatter diagnosticsFormatter)
 {
+    private readonly ConsoleOptions _diagOptions = diagnosticsOptions.Value;
+
     private const string JsonRpcPath = "/jsonrpc";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -40,7 +48,7 @@ public sealed class JsonRpcMiddleware(
             if (string.IsNullOrWhiteSpace(body))
             {
                 await WriteResponseAsync(context, JsonRpcResponse.Failure(
-                    JsonRpcError.InvalidRequest("Empty request body"), null));
+                    JsonRpcError.InvalidRequest("请求体为空"), null));
                 return;
             }
 
@@ -119,6 +127,21 @@ public sealed class JsonRpcMiddleware(
                 request.Id);
         }
 
+        // 诊断日志 — 接收请求行
+        var diagEnabled = _diagOptions.Enabled;
+        string? paramsJson = null;
+        if (diagEnabled)
+        {
+            if (request.Params is JsonElement pe)
+                paramsJson = pe.GetRawText();
+            else if (request.Params is not null)
+                paramsJson = JsonSerializer.Serialize(request.Params, JsonOptions);
+
+            Console.WriteLine(diagnosticsFormatter.FormatJsonRpcRequest("⟸", request.Method, null, paramsJson));
+        }
+
+        var sw = Stopwatch.StartNew();
+
         try
         {
             // 转换参数为 JsonElement
@@ -134,21 +157,50 @@ public sealed class JsonRpcMiddleware(
             }
 
             var result = await handler.HandleAsync(parameters, cancellationToken);
-            return JsonRpcResponse.Success(result, request.Id);
+            sw.Stop();
+
+            var response = JsonRpcResponse.Success(result, request.Id);
+
+            // 诊断日志 — 返回响应行
+            if (diagEnabled)
+            {
+                var resultJson = result is not null ? JsonSerializer.Serialize(result, JsonOptions) : null;
+                Console.WriteLine(diagnosticsFormatter.FormatJsonRpcResponse("⟹", sw.ElapsedMilliseconds, resultJson, null));
+            }
+
+            return response;
         }
         catch (ArgumentException ex)
         {
+            sw.Stop();
             logger.LogWarning(ex, "Invalid params for method: {Method}", request.Method);
-            return JsonRpcResponse.Failure(
+            var errorResponse = JsonRpcResponse.Failure(
                 JsonRpcError.InvalidParams(ex.Message),
                 request.Id);
+
+            if (diagEnabled)
+            {
+                var errorJson = JsonSerializer.Serialize(errorResponse.Error, JsonOptions);
+                Console.WriteLine(diagnosticsFormatter.FormatJsonRpcResponse("⟹", sw.ElapsedMilliseconds, null, errorJson));
+            }
+
+            return errorResponse;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error executing method: {Method}", request.Method);
-            return JsonRpcResponse.Failure(
+            sw.Stop();
+            logger.LogError(ex, "执行方法 {Method} 时出错", request.Method);
+            var errorResponse = JsonRpcResponse.Failure(
                 JsonRpcError.InternalError(ex.Message),
                 request.Id);
+
+            if (diagEnabled)
+            {
+                var errorJson = JsonSerializer.Serialize(errorResponse.Error, JsonOptions);
+                Console.WriteLine(diagnosticsFormatter.FormatJsonRpcResponse("⟹", sw.ElapsedMilliseconds, null, errorJson));
+            }
+
+            return errorResponse;
         }
     }
 

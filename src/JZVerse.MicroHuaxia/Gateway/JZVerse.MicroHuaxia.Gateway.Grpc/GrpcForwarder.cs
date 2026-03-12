@@ -103,11 +103,7 @@ public sealed class GrpcForwarder : IProtocolForwarder
 
     private async Task<string?> ResolveTargetAddressAsync(RouteDestination destination, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrEmpty(destination.DirectAddress))
-        {
-            return destination.DirectAddress;
-        }
-
+        // 1. 优先使用服务发现
         if (!string.IsNullOrEmpty(destination.ServiceName) && _serviceDiscovery is not null)
         {
             var instances = await _serviceDiscovery.GetInstancesAsync(destination.ServiceName, cancellationToken);
@@ -118,9 +114,17 @@ public sealed class GrpcForwarder : IProtocolForwarder
                 var index = Random.Shared.Next(healthyInstances.Count);
                 return healthyInstances[index].Address;
             }
+
+            // SD 未返回结果，降级到直接地址
+            if (!string.IsNullOrEmpty(destination.DirectAddress))
+            {
+                _logger.LogWarning("服务发现未找到 {ServiceName} 的可用实例，gRPC 降级到 DirectAddress: {DirectAddress}",
+                    destination.ServiceName, destination.DirectAddress);
+            }
         }
 
-        return null;
+        // 2. 兜底：使用直接地址
+        return destination.DirectAddress;
     }
 
     private static bool IsGrpcHeader(string headerName)
