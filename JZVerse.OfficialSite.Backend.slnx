@@ -11,7 +11,6 @@
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Client/JZVerse.MicroHuaxia.ServiceDiscovery.Client.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Server/JZVerse.MicroHuaxia.ServiceDiscovery.Server.csproj" />
-        <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry/JZVerse.MicroHuaxia.ServiceDiscovery.Telemetry.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.AppHost/JZVerse.MicroHuaxia.ServiceDiscovery.AppHost.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Cli/JZVerse.MicroHuaxia.ServiceDiscovery.Cli.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Grpc/JZVerse.MicroHuaxia.ServiceDiscovery.Grpc.csproj" />
@@ -20,6 +19,19 @@
     <Folder Name="/tests/ServiceDiscovery/">
         <Project Path="tests/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Unit/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Unit.csproj" />
         <Project Path="tests/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration.csproj" />
+    </Folder>
+    <Folder Name="/src/" />
+    <Folder Name="/src/JZVerse.DataAccess/">
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Abstractions/JZVerse.DataAccess.Abstractions.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.AspNetCore/JZVerse.DataAccess.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.AspNetCore/JZVerse.DataAccess.Caching.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.Dapper/JZVerse.DataAccess.Caching.Dapper.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.EFCore/JZVerse.DataAccess.Caching.EFCore.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Core/JZVerse.DataAccess.Core.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.MongoDB/JZVerse.DataAccess.MongoDB.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.MySql/JZVerse.DataAccess.MySql.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.PostgreSql/JZVerse.DataAccess.PostgreSql.csproj" />
+        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Sqlite/JZVerse.DataAccess.Sqlite.csproj" />
     </Folder>
     <Folder Name="/src/JZVerse.MicroHuaxia/ConfigCenter/">
         <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Abstractions/JZVerse.MicroHuaxia.ConfigCenter.Abstractions.csproj" />
@@ -30,6 +42,7 @@
         <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Grpc/JZVerse.MicroHuaxia.ConfigCenter.Grpc.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.JsonRpc/JZVerse.MicroHuaxia.ConfigCenter.JsonRpc.csproj" />
     </Folder>
+    <Folder Name="/tests/" />
     <Folder Name="/tests/ConfigCenter/">
         <Project Path="tests/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Tests.Unit/JZVerse.MicroHuaxia.ConfigCenter.Tests.Unit.csproj" />
         <Project Path="tests/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Tests.Integration/JZVerse.MicroHuaxia.ConfigCenter.Tests.Integration.csproj" />
@@ -59,6 +72,7 @@
         <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.WebSocket/JZVerse.MicroHuaxia.Gateway.WebSocket.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Grpc/JZVerse.MicroHuaxia.Gateway.Grpc.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Server/JZVerse.MicroHuaxia.Gateway.Server.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Gateway/JZVerse.MicroHuaxia.Gateway.Client/JZVerse.MicroHuaxia.Gateway.Client.csproj" />
     </Folder>
     <Folder Name="/tests/Gateway/">
         <Project Path="tests/Gateway/JZVerse.MicroHuaxia.Gateway.Tests.Unit/JZVerse.MicroHuaxia.Gateway.Tests.Unit.csproj" />
@@ -75,6 +89,7 @@
         <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Client/JZVerse.MicroHuaxia.MessageQueue.Client.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Server/JZVerse.MicroHuaxia.MessageQueue.Server.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.AspNetCore/JZVerse.MicroHuaxia.MessageQueue.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Host/JZVerse.MicroHuaxia.MessageQueue.Host.csproj" />
     </Folder>
     <Folder Name="/tests/MessageQueue/">
         <Project Path="tests/MessageQueue/JZVerse.MicroHuaxia.MessageQueue.Tests.Unit/JZVerse.MicroHuaxia.MessageQueue.Tests.Unit.csproj" />
@@ -83,8 +98,37 @@
         <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Abstractions/JZVerse.MicroHuaxia.Saga.Abstractions.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Core/JZVerse.MicroHuaxia.Saga.Core.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.AspNetCore/JZVerse.MicroHuaxia.Saga.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Server/JZVerse.MicroHuaxia.Saga.Server.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Saga/JZVerse.MicroHuaxia.Saga.Client/JZVerse.MicroHuaxia.Saga.Client.csproj" />
     </Folder>
     <Folder Name="/tests/Saga/">
         <Project Path="tests/Saga/JZVerse.MicroHuaxia.Saga.Tests.Unit/JZVerse.MicroHuaxia.Saga.Tests.Unit.csproj" />
+    </Folder>
+    <Folder Name="/tests/Business/">
+        <Project Path="tests/Business/JZVerse.Business.Tests.Unit/JZVerse.Business.Tests.Unit.csproj" />
+        <Project Path="tests/Business/JZVerse.Business.Tests.Integration/JZVerse.Business.Tests.Integration.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.Business/">
+        <Project Path="src/JZVerse.Business/JZVerse.Business.Abstractions/JZVerse.Business.Abstractions.csproj" />
+        <Project Path="src/JZVerse.Business/JZVerse.Business.Infrastructure/JZVerse.Business.Infrastructure.csproj" />
+        <Project Path="src/JZVerse.Business/JZVerse.Business.Server/JZVerse.Business.Server.csproj" />
+        <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.Security/JZVerse.Business.Central.Security.csproj" />
+        <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.User/JZVerse.Business.Central.User.csproj" />
+        <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.File/JZVerse.Business.Central.File.csproj" />
+        <Project Path="src/JZVerse.Business/Business/JZVerse.Business.Blog/JZVerse.Business.Blog.csproj" />
+        <Project Path="src/JZVerse.Business/Business/JZVerse.Business.Project/JZVerse.Business.Project.csproj" />
+        <Project Path="src/JZVerse.Business/Business/JZVerse.Business.Academy/JZVerse.Business.Academy.csproj" />
+        <Project Path="src/JZVerse.Business/Business/JZVerse.Business.Dashboard/JZVerse.Business.Dashboard.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/Dashboard/">
+        <Project Path="src/JZVerse.MicroHuaxia/Dashboard/JZVerse.MicroHuaxia.Dashboard.Abstractions/JZVerse.MicroHuaxia.Dashboard.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Dashboard/JZVerse.MicroHuaxia.Dashboard.Core/JZVerse.MicroHuaxia.Dashboard.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Dashboard/JZVerse.MicroHuaxia.Dashboard.Web/JZVerse.MicroHuaxia.Dashboard.Web.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Dashboard/JZVerse.MicroHuaxia.Dashboard.AspNetCore/JZVerse.MicroHuaxia.Dashboard.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Dashboard/JZVerse.MicroHuaxia.Dashboard.Server/JZVerse.MicroHuaxia.Dashboard.Server.csproj" />
+    </Folder>
+    <Folder Name="/src/JZVerse.MicroHuaxia/Observability/">
+        <Project Path="src/JZVerse.MicroHuaxia/Observability/JZVerse.MicroHuaxia.Observability.Core/JZVerse.MicroHuaxia.Observability.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/Observability/JZVerse.MicroHuaxia.Observability.AspNetCore/JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
     </Folder>
 </Solution>
