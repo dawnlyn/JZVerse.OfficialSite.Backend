@@ -7,11 +7,11 @@ namespace JZVerse.MicroHuaxia.ServiceDiscovery.Core.Services;
 /// <summary>
 /// 服务发现实现
 /// </summary>
-public class ServiceDiscoveryService(
+public class ServiceDiscovery(
     IServiceInstanceRepository _repository,
     IServiceDiscoveryCache _cache,
     ILoadBalancer _loadBalancer,
-    ILogger<ServiceDiscoveryService> _logger
+    ILogger<ServiceDiscovery> _logger
 ) : IServiceDiscovery
 {
     /// <inheritdoc />

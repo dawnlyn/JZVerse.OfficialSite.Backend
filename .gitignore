@@ -4,3 +4,8 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .idea/
+.vs/
+*.DotSettings.user
+.DS_Store
+nul
+.qoder/

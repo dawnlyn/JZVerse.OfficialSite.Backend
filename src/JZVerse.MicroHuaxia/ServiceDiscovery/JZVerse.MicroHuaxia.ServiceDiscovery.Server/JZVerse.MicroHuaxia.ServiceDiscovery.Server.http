@@ -1,6 +1,0 @@
-@JZVerse.MicroHuaxia.ServiceDiscovery.Server_HostAddress = http://localhost:5023
-
-GET {{JZVerse.MicroHuaxia.ServiceDiscovery.Server_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
