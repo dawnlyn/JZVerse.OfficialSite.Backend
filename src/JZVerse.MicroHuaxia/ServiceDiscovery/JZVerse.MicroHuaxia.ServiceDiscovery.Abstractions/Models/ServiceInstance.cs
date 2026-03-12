@@ -96,4 +96,14 @@ public sealed class ServiceInstance
     /// 是否启用
     /// </summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// 注销时间（null 表示仍在线）
+    /// </summary>
+    public DateTimeOffset? DeregisteredAt { get; set; }
+
+    /// <summary>
+    /// 是否已注销
+    /// </summary>
+    public bool IsDeregistered => DeregisteredAt.HasValue;
 }

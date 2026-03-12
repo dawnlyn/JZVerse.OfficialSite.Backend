@@ -59,4 +59,12 @@ public interface IServiceRegistry
         ServiceMetadata metadata,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// 永久删除已注销的服务实例
+    /// </summary>
+    /// <param name="instanceId">实例 ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>是否删除成功</returns>
+    Task<bool> PurgeAsync(string instanceId, CancellationToken cancellationToken = default);
 }

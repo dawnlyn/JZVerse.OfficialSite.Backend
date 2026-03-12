@@ -149,6 +149,12 @@ public class InMemoryServiceInstanceRepository : IServiceInstanceRepository
             results = results.Where(i => i.Enabled);
         }
 
+        // 已注销实例过滤
+        if (!query.IncludeDeregistered)
+        {
+            results = results.Where(i => !i.IsDeregistered);
+        }
+
         return Task.FromResult<IReadOnlyList<ServiceInstance>>(results.ToList());
     }
 

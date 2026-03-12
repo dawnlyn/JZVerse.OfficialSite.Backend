@@ -50,26 +50,59 @@ public class ServiceRegistry(
 
         var startTime = Stopwatch.GetTimestamp();
 
-        var instance = new ServiceInstance
-        {
-            InstanceId = instanceId,
-            ServiceName = registration.ServiceName,
-            Version = registration.Version,
-            Host = registration.Host,
-            Port = registration.Port,
-            Scheme = registration.Scheme,
-            BasePath = registration.BasePath,
-            Tags = [.. registration.Tags],
-            Metadata = registration.Metadata,
-            Weight = registration.Weight,
-            Health = HealthStatus.Starting,
-            RegisteredAt = DateTimeOffset.UtcNow,
-            LastHeartbeatAt = DateTimeOffset.UtcNow,
-            LastHealthCheckAt = DateTimeOffset.UtcNow,
-        };
-
         try
         {
+            // 检查是否存在已注销的同 ID 实例，支持重新注册
+            var existing = await _repository.GetByIdAsync(instanceId, cancellationToken);
+            if (existing != null && existing.IsDeregistered)
+            {
+                existing.DeregisteredAt = null;
+                existing.Enabled = true;
+                existing.Health = HealthStatus.Starting;
+                existing.LastHeartbeatAt = DateTimeOffset.UtcNow;
+                existing.LastHealthCheckAt = DateTimeOffset.UtcNow;
+                existing.FailureCount = 0;
+                await _repository.UpdateAsync(existing, cancellationToken);
+
+                activity?.SetStatus(ActivityStatusCode.Ok);
+                var elapsed = Stopwatch.GetElapsedTime(startTime);
+                activity?.SetTag("sd.registration.duration_ms", elapsed.TotalMilliseconds);
+                activity?.SetTag("sd.registration.reactivated", true);
+
+                _logger.LogInformation(
+                    "已注销服务实例重新注册: {ServiceName}:{InstanceId} 地址: {Address} 耗时: {ElapsedMs:F2}ms",
+                    existing.ServiceName,
+                    existing.InstanceId,
+                    existing.Address,
+                    elapsed.TotalMilliseconds
+                );
+
+                await _eventPublisher.PublishAsync(
+                    new() { EventType = ServiceEventType.Registered, Instance = existing },
+                    cancellationToken
+                );
+
+                return existing;
+            }
+
+            var instance = new ServiceInstance
+            {
+                InstanceId = instanceId,
+                ServiceName = registration.ServiceName,
+                Version = registration.Version,
+                Host = registration.Host,
+                Port = registration.Port,
+                Scheme = registration.Scheme,
+                BasePath = registration.BasePath,
+                Tags = [.. registration.Tags],
+                Metadata = registration.Metadata,
+                Weight = registration.Weight,
+                Health = HealthStatus.Starting,
+                RegisteredAt = DateTimeOffset.UtcNow,
+                LastHeartbeatAt = DateTimeOffset.UtcNow,
+                LastHealthCheckAt = DateTimeOffset.UtcNow,
+            };
+
             await _repository.AddAsync(instance, cancellationToken);
 
             // 记录追踪信息
@@ -78,15 +111,15 @@ public class ServiceRegistry(
             activity?.SetTag("sd.registration.scheme", instance.Scheme);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
-            var elapsed = Stopwatch.GetElapsedTime(startTime);
-            activity?.SetTag("sd.registration.duration_ms", elapsed.TotalMilliseconds);
+            var elapsedNew = Stopwatch.GetElapsedTime(startTime);
+            activity?.SetTag("sd.registration.duration_ms", elapsedNew.TotalMilliseconds);
 
             _logger.LogInformation(
                 "服务实例已注册: {ServiceName}:{InstanceId} 地址: {Address} 耗时: {ElapsedMs:F2}ms",
                 instance.ServiceName,
                 instance.InstanceId,
                 instance.Address,
-                elapsed.TotalMilliseconds
+                elapsedNew.TotalMilliseconds
             );
 
             // 发布事件
@@ -126,7 +159,10 @@ public class ServiceRegistry(
 
         activity?.SetTag("service.name", instance.ServiceName);
 
-        var result = await _repository.RemoveAsync(instanceId, cancellationToken);
+        // 软删除：标记为已注销而非物理删除
+        instance.DeregisteredAt = DateTimeOffset.UtcNow;
+        instance.Enabled = false;
+        var result = await _repository.UpdateAsync(instance, cancellationToken);
 
         if (result)
         {
@@ -162,6 +198,14 @@ public class ServiceRegistry(
         {
             _logger.LogWarning("收到不存在实例的心跳: {InstanceId}", instanceId);
             activity?.SetStatus(ActivityStatusCode.Error, "Instance not found");
+            return false;
+        }
+
+        // 拒绝已注销实例的心跳
+        if (instance.IsDeregistered)
+        {
+            _logger.LogWarning("收到已注销实例的心跳: {InstanceId}", instanceId);
+            activity?.SetStatus(ActivityStatusCode.Error, "Instance deregistered");
             return false;
         }
 
@@ -306,6 +350,29 @@ public class ServiceRegistry(
             await _eventPublisher.PublishAsync(
                 new() { EventType = ServiceEventType.MetadataUpdated, Instance = updatedInstance },
                 cancellationToken
+            );
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> PurgeAsync(string instanceId, CancellationToken cancellationToken = default)
+    {
+        var instance = await _repository.GetByIdAsync(instanceId, cancellationToken);
+        if (instance == null || !instance.IsDeregistered)
+        {
+            _logger.LogWarning("无法清除实例: {InstanceId}（不存在或未注销）", instanceId);
+            return false;
+        }
+
+        var result = await _repository.RemoveAsync(instanceId, cancellationToken);
+        if (result)
+        {
+            _logger.LogInformation(
+                "已永久删除注销实例: {ServiceName}:{InstanceId}",
+                instance.ServiceName,
+                instance.InstanceId
             );
         }
 

@@ -110,7 +110,7 @@ public class HealthCheckManager(
         _logger.LogDebug("正在对 {Count} 个实例执行健康检查", instances.Count);
 
         var tasks = instances
-            .Where(i => i.Enabled)
+            .Where(i => i.Enabled && !i.IsDeregistered)
             .Select(instance => CheckAndUpdateInstanceHealthAsync(instance, cancellationToken));
 
         await Task.WhenAll(tasks);

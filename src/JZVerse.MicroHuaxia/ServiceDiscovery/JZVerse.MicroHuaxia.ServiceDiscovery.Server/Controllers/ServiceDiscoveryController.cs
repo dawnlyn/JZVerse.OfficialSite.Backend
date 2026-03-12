@@ -122,10 +122,27 @@ public class ServiceDiscoveryController(
     /// </summary>
     [HttpGet("{serviceName}")]
     [ProducesResponseType(typeof(IReadOnlyList<ServiceInstance>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetInstances(string serviceName, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetInstances(
+        string serviceName,
+        [FromQuery] bool includeDeregistered = false,
+        CancellationToken cancellationToken = default
+    )
     {
-        var instances = await _discovery.GetInstancesAsync(serviceName, cancellationToken);
-        return Ok(instances);
+        if (includeDeregistered)
+        {
+            var query = new ServiceQuery
+            {
+                ServiceName = serviceName,
+                IncludeDeregistered = true,
+                OnlyHealthy = false,
+                OnlyEnabled = false,
+            };
+            var instances = await _discovery.DiscoverAsync(query, cancellationToken);
+            return Ok(instances);
+        }
+
+        var result = await _discovery.GetInstancesAsync(serviceName, cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>
@@ -163,6 +180,18 @@ public class ServiceDiscoveryController(
     {
         var instance = await _discovery.GetInstanceByIdAsync(instanceId, cancellationToken);
         return instance != null ? Ok(instance) : NotFound(new { error = $"Instance '{instanceId}' not found" });
+    }
+
+    /// <summary>
+    /// 永久删除已注销的服务实例
+    /// </summary>
+    [HttpDelete("{instanceId}/purge")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Purge(string instanceId, CancellationToken cancellationToken)
+    {
+        var result = await _registry.PurgeAsync(instanceId, cancellationToken);
+        return result ? NoContent() : NotFound(new { error = $"Instance '{instanceId}' not found or not deregistered" });
     }
 
     /// <summary>

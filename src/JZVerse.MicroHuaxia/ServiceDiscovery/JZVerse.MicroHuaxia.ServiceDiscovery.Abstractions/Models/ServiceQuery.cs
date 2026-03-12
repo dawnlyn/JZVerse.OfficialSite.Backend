@@ -44,4 +44,9 @@ public sealed class ServiceQuery
     /// 只返回健康的实例
     /// </summary>
     public bool OnlyHealthy { get; init; } = true;
+
+    /// <summary>
+    /// 是否包含已注销的实例（默认不包含）
+    /// </summary>
+    public bool IncludeDeregistered { get; init; } = false;
 }
