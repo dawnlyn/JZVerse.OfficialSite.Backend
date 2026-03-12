@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>JZVerse.Business.Infrastructure</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0-preview.1.25120.3" />
+        <PackageReference Include="StackExchange.Redis" Version="2.8.41" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\JZVerse.Business.Abstractions\JZVerse.Business.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "JZVerse.MicroHuaxia.MessageQueue.Host": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5103",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
