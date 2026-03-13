@@ -131,7 +131,4 @@
         <Project Path="src/JZVerse.MicroHuaxia/Observability/JZVerse.MicroHuaxia.Observability.Core/JZVerse.MicroHuaxia.Observability.Core.csproj" />
         <Project Path="src/JZVerse.MicroHuaxia/Observability/JZVerse.MicroHuaxia.Observability.AspNetCore/JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
     </Folder>
-    <Folder Name="/src/JZVerse.MicroHuaxia/ProcessManager/">
-        <Project Path="src/JZVerse.MicroHuaxia/ProcessManager/JZVerse.MicroHuaxia.ProcessManager/JZVerse.MicroHuaxia.ProcessManager.csproj" />
-    </Folder>
 </Solution>

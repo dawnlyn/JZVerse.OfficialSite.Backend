@@ -106,7 +106,6 @@
             "/mq/consumers" => "consumers",
             "/mq/connections" => "connections",
             "/saga" => "saga",
-            "/processes" => "processes",
             _ when path.StartsWith("/services/") => "services",
             _ when path.StartsWith("/mq/topics/") => "topics",
             _ when path.StartsWith("/saga/") => "saga",

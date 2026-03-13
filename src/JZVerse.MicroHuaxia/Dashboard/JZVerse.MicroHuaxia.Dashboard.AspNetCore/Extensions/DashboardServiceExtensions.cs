@@ -55,8 +55,6 @@ public static class DashboardServiceExtensions
         services.AddHttpClient<IGatewayApiClient, GatewayApiClient>();
         services.AddHttpClient<IMessageQueueApiClient, MessageQueueApiClient>();
         services.AddHttpClient<ISagaApiClient, SagaApiClient>();
-        services.AddHttpClient<IProcessManagerApiClient, ProcessManagerApiClient>();
-
         // 注册系统配置聚合服务
         services.AddScoped<ISystemConfigService, SystemConfigService>();
 
