@@ -162,6 +162,13 @@ public class GatewayApiClient : IGatewayApiClient
             // 服务端直接返回 AuditLogEntry 数组
             var entries = await response.Content.ReadFromJsonAsync<List<AuditLogEntryDto>>(cancellationToken);
             var items = entries?.Select(MapToAuditLog).ToList() ?? new List<AuditLog>();
+
+            // 仅业务服务日志：过滤 TargetService 有值的记录
+            if (query.BusinessOnly)
+            {
+                items = items.Where(i => !string.IsNullOrEmpty(i.TargetService)).ToList();
+            }
+
             return (items, items.Count);
         }
         catch (Exception ex)

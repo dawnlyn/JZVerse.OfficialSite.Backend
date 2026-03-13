@@ -27,9 +27,13 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
 
     public async Task<List<ServiceInfo>> GetServicesAsync(CancellationToken cancellationToken = default)
     {
+        return await GetServicesAsync(false, cancellationToken);
+    }
+
+    public async Task<List<ServiceInfo>> GetServicesAsync(bool includeDeregistered, CancellationToken cancellationToken = default)
+    {
         try
         {
-            // 服务端 GET /api/v1/services 返回的是服务名称列表 (string[])
             var namesResponse = await _httpClient.GetAsync("/api/v1/services", cancellationToken);
             namesResponse.EnsureSuccessStatusCode();
 
@@ -39,24 +43,29 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
                 return new List<ServiceInfo>();
             }
 
-            // 逐个查询每个服务的实例列表
             var services = new List<ServiceInfo>();
             foreach (var serviceName in serviceNames)
             {
                 try
                 {
-                    var instancesResponse = await _httpClient.GetAsync(
-                        $"/api/v1/services/{Uri.EscapeDataString(serviceName)}", cancellationToken);
+                    var url = includeDeregistered
+                        ? $"/api/v1/services/{Uri.EscapeDataString(serviceName)}?includeDeregistered=true"
+                        : $"/api/v1/services/{Uri.EscapeDataString(serviceName)}";
+                    var instancesResponse = await _httpClient.GetAsync(url, cancellationToken);
                     instancesResponse.EnsureSuccessStatusCode();
 
                     var instances = await instancesResponse.Content.ReadFromJsonAsync<List<InstanceDto>>(cancellationToken);
+
+                    var deregisteredCount = instances?.Count(i => i.DeregisteredAt.HasValue) ?? 0;
+                    var activeInstances = instances?.Where(i => !i.DeregisteredAt.HasValue).ToList() ?? [];
 
                     services.Add(new ServiceInfo
                     {
                         ServiceName = serviceName,
                         InstanceCount = instances?.Count ?? 0,
-                        HealthyCount = instances?.Count(i => i.Health == HealthStatus.Healthy) ?? 0,
-                        UnhealthyCount = instances?.Count(i => i.Health != HealthStatus.Healthy) ?? 0,
+                        HealthyCount = activeInstances.Count(i => i.Health == HealthStatus.Healthy),
+                        UnhealthyCount = activeInstances.Count(i => i.Health != HealthStatus.Healthy),
+                        DeregisteredCount = deregisteredCount,
                         Status = DetermineServiceStatus(instances)
                     });
                 }
@@ -69,6 +78,7 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
                         InstanceCount = 0,
                         HealthyCount = 0,
                         UnhealthyCount = 0,
+                        DeregisteredCount = 0,
                         Status = ServiceStatus.Unknown
                     });
                 }
@@ -85,12 +95,19 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
 
     public async Task<List<ServiceInstance>> GetInstancesAsync(string serviceName, CancellationToken cancellationToken = default)
     {
+        return await GetInstancesAsync(serviceName, false, cancellationToken);
+    }
+
+    public async Task<List<ServiceInstance>> GetInstancesAsync(string serviceName, bool includeDeregistered, CancellationToken cancellationToken = default)
+    {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/v1/services/{Uri.EscapeDataString(serviceName)}", cancellationToken);
+            var url = includeDeregistered
+                ? $"/api/v1/services/{Uri.EscapeDataString(serviceName)}?includeDeregistered=true"
+                : $"/api/v1/services/{Uri.EscapeDataString(serviceName)}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            // 服务端直接返回实例数组 (ServiceInstance[])
             var instances = await response.Content.ReadFromJsonAsync<List<InstanceDto>>(cancellationToken);
             if (instances == null)
             {
@@ -107,7 +124,8 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
                 Weight = i.Weight,
                 Metadata = i.Metadata?.Properties ?? new Dictionary<string, string>(),
                 RegisterTime = i.RegisteredAt.DateTime,
-                LastHeartbeat = i.LastHeartbeatAt.DateTime
+                LastHeartbeat = i.LastHeartbeatAt.DateTime,
+                DeregisteredAt = i.DeregisteredAt?.DateTime,
             }).ToList();
         }
         catch (Exception ex)
@@ -178,6 +196,21 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
         }
     }
 
+    public async Task PurgeInstanceAsync(string instanceId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync(
+                $"/api/v1/services/{Uri.EscapeDataString(instanceId)}/purge", cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "永久删除实例 {InstanceId} 失败", instanceId);
+            throw;
+        }
+    }
+
     private static ServiceStatus DetermineServiceStatus(List<InstanceDto>? instances)
     {
         if (instances == null || instances.Count == 0)
@@ -185,26 +218,31 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
             return ServiceStatus.Unknown;
         }
 
-        var healthyCount = instances.Count(i => i.Health == HealthStatus.Healthy);
-        if (healthyCount == instances.Count)
+        // 区分活跃实例和已注销实例
+        var activeInstances = instances.Where(i => !i.DeregisteredAt.HasValue).ToList();
+
+        // 所有实例都已注销 → 已下线
+        if (activeInstances.Count == 0)
+        {
+            return ServiceStatus.Offline;
+        }
+
+        var healthyCount = activeInstances.Count(i => i.Health == HealthStatus.Healthy);
+
+        // 所有活跃实例健康
+        if (healthyCount == activeInstances.Count)
         {
             return ServiceStatus.Healthy;
         }
+
+        // 部分活跃实例健康
         if (healthyCount > 0)
         {
             return ServiceStatus.PartialHealthy;
         }
-        return ServiceStatus.Unhealthy;
-    }
 
-    private static HealthStatus ParseHealthStatus(string? status)
-    {
-        return status?.ToLowerInvariant() switch
-        {
-            "healthy" => HealthStatus.Healthy,
-            "unhealthy" => HealthStatus.Unhealthy,
-            _ => HealthStatus.Unknown
-        };
+        // 所有活跃实例不健康 → 故障
+        return ServiceStatus.Fault;
     }
 
     // 内部 DTO 类型，匹配服务端 ServiceInstance/ServiceMetadata 的 JSON 结构
@@ -219,6 +257,7 @@ public class ServiceDiscoveryApiClient : IServiceDiscoveryApiClient
         public MetadataDto? Metadata { get; set; }
         public DateTimeOffset RegisteredAt { get; set; }
         public DateTimeOffset LastHeartbeatAt { get; set; }
+        public DateTimeOffset? DeregisteredAt { get; set; }
     }
 
     private class MetadataDto

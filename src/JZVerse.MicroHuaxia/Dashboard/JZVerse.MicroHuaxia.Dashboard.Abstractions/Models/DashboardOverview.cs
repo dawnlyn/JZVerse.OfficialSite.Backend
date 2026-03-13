@@ -24,6 +24,11 @@ public class DashboardOverview
     /// 消息队列统计
     /// </summary>
     public MessageQueueStats MessageQueue { get; set; } = new();
+
+    /// <summary>
+    /// Saga 统计
+    /// </summary>
+    public SagaStats Saga { get; set; } = new();
 }
 
 /// <summary>

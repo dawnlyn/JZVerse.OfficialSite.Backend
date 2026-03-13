@@ -1,7 +1,9 @@
 using JZVerse.MicroHuaxia.Saga.Abstractions;
 using JZVerse.MicroHuaxia.Saga.Abstractions.Models;
+using JZVerse.MicroHuaxia.Saga.Server.Configuration;
 using JZVerse.MicroHuaxia.Saga.Server.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.Saga.Server.Controllers;
 
@@ -15,17 +17,20 @@ public class SagaController : ControllerBase
     private readonly ISagaOrchestrator _orchestrator;
     private readonly ISagaStore _sagaStore;
     private readonly IEnumerable<ISagaDefinition> _sagaDefinitions;
+    private readonly IOptions<SagaServerOptions> _options;
     private readonly ILogger<SagaController> _logger;
 
     public SagaController(
         ISagaOrchestrator orchestrator,
         ISagaStore sagaStore,
         IEnumerable<ISagaDefinition> sagaDefinitions,
+        IOptions<SagaServerOptions> options,
         ILogger<SagaController> logger)
     {
         _orchestrator = orchestrator;
         _sagaStore = sagaStore;
         _sagaDefinitions = sagaDefinitions;
+        _options = options;
         _logger = logger;
     }
 
@@ -149,6 +154,41 @@ public class SagaController : ControllerBase
         var result = await _orchestrator.ResumeAsync(instanceId, cancellationToken);
         _logger.LogInformation("恢复 Saga: {InstanceId}, 结果: {Result}", instanceId, result);
         return Ok(new { success = result });
+    }
+
+    // ==================== 统计信息 ====================
+
+    /// <summary>
+    /// 获取 Saga 统计信息
+    /// </summary>
+    [HttpGet("stats")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        var instances = await _orchestrator.QueryInstancesAsync(limit: 10000, cancellationToken: cancellationToken);
+        var stats = new
+        {
+            TotalInstances = instances.Count,
+            Executing = instances.Count(i => i.Status == SagaStatus.Executing),
+            Completed = instances.Count(i => i.Status == SagaStatus.Completed),
+            Failed = instances.Count(i => i.Status == SagaStatus.Failed),
+            Compensating = instances.Count(i => i.Status == SagaStatus.Compensating),
+            Compensated = instances.Count(i => i.Status == SagaStatus.Compensated),
+            TimedOut = instances.Count(i => i.Status == SagaStatus.TimedOut)
+        };
+        return Ok(stats);
+    }
+
+    // ==================== 配置查询 ====================
+
+    /// <summary>
+    /// 获取 Saga 服务配置
+    /// </summary>
+    [HttpGet("config")]
+    [ProducesResponseType(typeof(SagaServerOptions), StatusCodes.Status200OK)]
+    public IActionResult GetConfig()
+    {
+        return Ok(_options.Value);
     }
 
     // ==================== 健康检查 ====================

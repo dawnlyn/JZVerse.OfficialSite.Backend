@@ -1,6 +1,8 @@
 using JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions;
 using JZVerse.MicroHuaxia.ServiceDiscovery.Abstractions.Models;
+using JZVerse.MicroHuaxia.ServiceDiscovery.Server.Configuration;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.ServiceDiscovery.Server.Controllers;
 
@@ -13,6 +15,7 @@ public class ServiceDiscoveryController(
     IServiceRegistry _registry,
     IServiceDiscovery _discovery,
     IHealthCheckManager _healthCheckManager,
+    IOptions<ServiceDiscoveryServerOptions> _options,
     ILogger<ServiceDiscoveryController> _logger
 ) : ControllerBase
 {
@@ -211,6 +214,16 @@ public class ServiceDiscoveryController(
         {
             return NotFound(new { error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// 获取服务发现配置
+    /// </summary>
+    [HttpGet("config")]
+    [ProducesResponseType(typeof(ServiceDiscoveryServerOptions), StatusCodes.Status200OK)]
+    public IActionResult GetConfig()
+    {
+        return Ok(_options.Value);
     }
 }
 

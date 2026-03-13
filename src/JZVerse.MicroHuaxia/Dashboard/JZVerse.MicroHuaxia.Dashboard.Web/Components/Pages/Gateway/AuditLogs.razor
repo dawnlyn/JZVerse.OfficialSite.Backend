@@ -32,6 +32,9 @@
             <FormItem Label="时间范围">
                 <RangePicker @bind-Value="@_dateRange" ShowTime="@true" />
             </FormItem>
+            <FormItem Label="仅业务服务">
+                <Switch @bind-Checked="@_query.BusinessOnly" CheckedChildren="是" UnCheckedChildren="否" />
+            </FormItem>
             <FormItem>
                 <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="@LoadDataAsync">
                     查询

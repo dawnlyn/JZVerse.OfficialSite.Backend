@@ -1,7 +1,9 @@
 using JZVerse.MicroHuaxia.Gateway.Abstractions;
 using JZVerse.MicroHuaxia.Gateway.Abstractions.Authentication;
+using JZVerse.MicroHuaxia.Gateway.Abstractions.Configuration;
 using JZVerse.MicroHuaxia.Gateway.Abstractions.Routing;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.Gateway.Server.Controllers;
 
@@ -16,6 +18,7 @@ public class GatewayController : ControllerBase
     private readonly IRouteRepository _routeRepository;
     private readonly IAuthenticationStrategyRepository _authStrategyRepository;
     private readonly IAuditLogStore _auditLogStore;
+    private readonly IOptions<GatewayOptions> _options;
     private readonly ILogger<GatewayController> _logger;
 
     public GatewayController(
@@ -23,12 +26,14 @@ public class GatewayController : ControllerBase
         IRouteRepository routeRepository,
         IAuthenticationStrategyRepository authStrategyRepository,
         IAuditLogStore auditLogStore,
+        IOptions<GatewayOptions> options,
         ILogger<GatewayController> logger)
     {
         _routeEngine = routeEngine;
         _routeRepository = routeRepository;
         _authStrategyRepository = authStrategyRepository;
         _auditLogStore = auditLogStore;
+        _options = options;
         _logger = logger;
     }
 
@@ -231,6 +236,18 @@ public class GatewayController : ControllerBase
         var toTime = to ?? DateTimeOffset.UtcNow;
         var stats = await _auditLogStore.GetStatisticsAsync(fromTime, toTime, cancellationToken);
         return Ok(stats);
+    }
+
+    // ==================== 配置查询 ====================
+
+    /// <summary>
+    /// 获取网关配置
+    /// </summary>
+    [HttpGet("config")]
+    [ProducesResponseType(typeof(GatewayOptions), StatusCodes.Status200OK)]
+    public IActionResult GetConfig()
+    {
+        return Ok(_options.Value);
     }
 
     // ==================== 健康检查 ====================

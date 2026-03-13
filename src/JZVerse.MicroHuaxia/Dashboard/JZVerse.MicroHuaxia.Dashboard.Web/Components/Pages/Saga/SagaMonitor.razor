@@ -1,0 +1,224 @@
+@page "/saga"
+@inject ISagaApiClient SagaClient
+@inject NavigationManager NavigationManager
+@inject IMessageService MessageService
+
+<PageTitle>Saga 监控</PageTitle>
+
+<div>
+    <PageHeader Title="Saga 监控" SubTitle="查看和管理分布式事务编排">
+        <PageHeaderExtra>
+            <Space>
+                <SpaceItem>
+                    <Select @bind-Value="@_statusFilter"
+                            TItemValue="string"
+                            TItem="string"
+                            Placeholder="全部状态"
+                            AllowClear
+                            Style="width: 140px;"
+                            OnSelectedItemChanged="_ => LoadDataAsync()">
+                        <SelectOptions>
+                            <SelectOption Value="@("Executing")" Label="执行中" />
+                            <SelectOption Value="@("Completed")" Label="已完成" />
+                            <SelectOption Value="@("Failed")" Label="失败" />
+                            <SelectOption Value="@("Compensating")" Label="补偿中" />
+                            <SelectOption Value="@("Compensated")" Label="已补偿" />
+                            <SelectOption Value="@("TimedOut")" Label="已超时" />
+                        </SelectOptions>
+                    </Select>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @* 统计卡片 *@
+    <AntDesign.Row Gutter="(16, 16)" Style="margin-bottom: 16px;">
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="总实例数" Value="@_stats.TotalInstances" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="执行中" Value="@_stats.Executing" ValueStyle="color: #1890ff" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="已完成" Value="@_stats.Completed" ValueStyle="color: #52c41a" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="失败" Value="@_stats.Failed" ValueStyle="color: #f5222d" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="补偿中" Value="@_stats.Compensating" ValueStyle="color: #faad14" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="12" Sm="8" Lg="4">
+            <Card Bordered Size="small">
+                <Statistic Title="已超时" Value="@_stats.TimedOut" ValueStyle="color: #ff7a45" />
+            </Card>
+        </AntDesign.Col>
+    </AntDesign.Row>
+
+    @* 实例列表 *@
+    <Table TItem="SagaInstanceInfo"
+           DataSource="@_instances"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.Name" Title="Saga 名称">
+            <a @onclick="() => ViewDetail(context.InstanceId)" @onclick:preventDefault style="cursor: pointer; color: #1890ff;">
+                @context.Name
+            </a>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.InstanceId" Title="实例 ID" Width="220" Ellipsis />
+        <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
+            <Tag Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</Tag>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.CurrentStepIndex" Title="进度" Width="100">
+            @context.CurrentStepIndex / @context.TotalSteps
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.CreatedAt" Title="创建时间" Width="180">
+            @context.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.ErrorMessage" Title="错误信息" Ellipsis>
+            @if (!string.IsNullOrEmpty(context.ErrorMessage))
+            {
+                <Tooltip Title="@context.ErrorMessage">
+                    <span style="color: #f5222d;">@context.ErrorMessage</span>
+                </Tooltip>
+            }
+            else
+            {
+                <span style="color: #999;">-</span>
+            }
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="200">
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Link" Size="small" Icon="@IconType.Outline.Eye"
+                            OnClick="() => ViewDetail(context.InstanceId)">
+                        详情
+                    </Button>
+                </SpaceItem>
+                @if (context.Status is "Failed" or "TimedOut")
+                {
+                    <SpaceItem>
+                        <Popconfirm Title="确定要触发补偿吗？" OkText="确定" CancelText="取消"
+                                    OnConfirm="() => CompensateInstance(context.InstanceId)">
+                            <Button Type="@ButtonType.Link" Size="small" Danger>补偿</Button>
+                        </Popconfirm>
+                    </SpaceItem>
+                }
+                @if (context.Status is "Executing" or "Compensating")
+                {
+                    <SpaceItem>
+                        <Popconfirm Title="确定要取消此 Saga 吗？" OkText="确定" CancelText="取消"
+                                    OnConfirm="() => CancelInstance(context.InstanceId)">
+                            <Button Type="@ButtonType.Link" Size="small" Danger>取消</Button>
+                        </Popconfirm>
+                    </SpaceItem>
+                }
+            </Space>
+        </ActionColumn>
+    </Table>
+</div>
+
+@code {
+    private List<SagaInstanceInfo> _instances = [];
+    private SagaStats _stats = new();
+    private string? _statusFilter;
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            var statsTask = SagaClient.GetStatsAsync();
+            var instancesTask = SagaClient.QueryInstancesAsync(status: _statusFilter);
+            await Task.WhenAll(statsTask, instancesTask);
+
+            _stats = statsTask.Result;
+            _instances = instancesTask.Result;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ViewDetail(string instanceId)
+    {
+        NavigationManager.NavigateTo($"/saga/{Uri.EscapeDataString(instanceId)}");
+    }
+
+    private async Task CompensateInstance(string instanceId)
+    {
+        try
+        {
+            await SagaClient.CompensateAsync(instanceId);
+            await MessageService.Success("已触发补偿");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"触发补偿失败: {ex.Message}");
+        }
+    }
+
+    private async Task CancelInstance(string instanceId)
+    {
+        try
+        {
+            await SagaClient.CancelAsync(instanceId);
+            await MessageService.Success("已取消 Saga");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"取消失败: {ex.Message}");
+        }
+    }
+
+    private static string GetStatusColor(string status) => status switch
+    {
+        "Executing" => "processing",
+        "Completed" => "success",
+        "Failed" => "error",
+        "Compensating" => "warning",
+        "Compensated" => "orange",
+        "TimedOut" => "volcano",
+        "Cancelled" => "default",
+        "Pending" => "default",
+        _ => "default"
+    };
+
+    private static string GetStatusText(string status) => status switch
+    {
+        "Executing" => "执行中",
+        "Completed" => "已完成",
+        "Failed" => "失败",
+        "Compensating" => "补偿中",
+        "Compensated" => "已补偿",
+        "TimedOut" => "已超时",
+        "Cancelled" => "已取消",
+        "Pending" => "待执行",
+        _ => status
+    };
+}

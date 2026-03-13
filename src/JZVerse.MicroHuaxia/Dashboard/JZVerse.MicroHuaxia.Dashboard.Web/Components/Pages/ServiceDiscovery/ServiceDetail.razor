@@ -8,9 +8,19 @@
 <div>
     <PageHeader Title="@ServiceName" SubTitle="服务实例详情" OnBack="@GoBack">
         <PageHeaderExtra>
-            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                刷新
-            </Button>
+            <Space>
+                <SpaceItem>
+                    <Switch @bind-Checked="@_showDeregistered"
+                            CheckedChildren="显示已下线"
+                            UnCheckedChildren="隐藏已下线"
+                            OnChange="OnShowDeregisteredChanged" />
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
         </PageHeaderExtra>
     </PageHeader>
 
@@ -18,22 +28,39 @@
            DataSource="@_instances"
            Loading="@_loading"
            Bordered
-           Size="TableSize.Middle">
+           Size="TableSize.Middle"
+           RowClassName="@(r => r.Data.IsDeregistered ? "deregistered-row" : "")">
         <PropertyColumn Property="c => c.InstanceId" Title="实例 ID" Ellipsis />
         <PropertyColumn Property="c => c.Host" Title="主机" Width="150" />
         <PropertyColumn Property="c => c.Port" Title="端口" Width="80" />
         <PropertyColumn Property="c => c.HealthStatus" Title="健康状态" Width="100">
-            @switch (context.HealthStatus)
+            @if (context.IsDeregistered)
             {
-                case HealthStatus.Healthy:
-                    <Tag Color="green">健康</Tag>
-                    break;
-                case HealthStatus.Unhealthy:
-                    <Tag Color="red">不健康</Tag>
-                    break;
-                default:
-                    <Tag>未知</Tag>
-                    break;
+                <Tag Color="default">已下线</Tag>
+            }
+            else
+            {
+                @switch (context.HealthStatus)
+                {
+                    case HealthStatus.Healthy:
+                        <Tag Color="green">健康</Tag>
+                        break;
+                    case HealthStatus.Unhealthy:
+                        <Tag Color="red">故障</Tag>
+                        break;
+                    case HealthStatus.Degraded:
+                        <Tag Color="orange">降级</Tag>
+                        break;
+                    case HealthStatus.Starting:
+                        <Tag Color="blue">启动中</Tag>
+                        break;
+                    case HealthStatus.Stopping:
+                        <Tag Color="gold">停止中</Tag>
+                        break;
+                    default:
+                        <Tag>未知</Tag>
+                        break;
+                }
             }
         </PropertyColumn>
         <PropertyColumn Property="c => c.Weight" Title="权重" Width="80" />
@@ -43,6 +70,19 @@
         <PropertyColumn Property="c => c.LastHeartbeat" Title="最后心跳" Width="180">
             @context.LastHeartbeat.ToString("yyyy-MM-dd HH:mm:ss")
         </PropertyColumn>
+        @if (_showDeregistered)
+        {
+            <PropertyColumn Property="c => c.DeregisteredAt" Title="下线时间" Width="180">
+                @if (context.DeregisteredAt.HasValue)
+                {
+                    @context.DeregisteredAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                }
+                else
+                {
+                    <span style="color: #999;">—</span>
+                }
+            </PropertyColumn>
+        }
         <ActionColumn Title="操作" Width="240">
             <Space>
                 <SpaceItem>
@@ -51,11 +91,22 @@
                     </Button>
                 </SpaceItem>
                 <SpaceItem>
-                    <Popconfirm Title="确定要注销此实例吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeregisterInstance(context.InstanceId)">
-                        <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
-                            注销
-                        </Button>
-                    </Popconfirm>
+                    @if (context.IsDeregistered)
+                    {
+                        <Popconfirm Title="确定要永久删除此实例吗？此操作不可恢复。" OkText="确定" CancelText="取消" OnConfirm="() => PurgeInstance(context.InstanceId)">
+                            <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
+                                永久删除
+                            </Button>
+                        </Popconfirm>
+                    }
+                    else
+                    {
+                        <Popconfirm Title="确定要注销此实例吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeregisterInstance(context.InstanceId)">
+                            <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Stop">
+                                注销
+                            </Button>
+                        </Popconfirm>
+                    }
                 </SpaceItem>
             </Space>
         </ActionColumn>
@@ -73,6 +124,10 @@
         <Descriptions Bordered Column="1">
             <DescriptionsItem Title="实例 ID">@_selectedInstance.InstanceId</DescriptionsItem>
             <DescriptionsItem Title="地址">@_selectedInstance.Host:@_selectedInstance.Port</DescriptionsItem>
+            @if (_selectedInstance.IsDeregistered)
+            {
+                <DescriptionsItem Title="状态"><Tag Color="default">已下线</Tag></DescriptionsItem>
+            }
         </Descriptions>
         <Divider>元数据</Divider>
         @if (_selectedInstance.Metadata.Any())
@@ -92,6 +147,12 @@
     }
 </Modal>
 
+<style>
+    .deregistered-row {
+        opacity: 0.6;
+    }
+</style>
+
 @code {
     [Parameter]
     public string ServiceName { get; set; } = string.Empty;
@@ -100,6 +161,7 @@
     private bool _loading = false;
     private bool _metadataModalVisible = false;
     private bool _saving = false;
+    private bool _showDeregistered = true;
     private ServiceInstance? _selectedInstance;
 
     protected override async Task OnInitializedAsync()
@@ -112,12 +174,18 @@
         _loading = true;
         try
         {
-            _instances = await ServiceDiscoveryClient.GetInstancesAsync(ServiceName);
+            _instances = await ServiceDiscoveryClient.GetInstancesAsync(ServiceName, _showDeregistered);
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task OnShowDeregisteredChanged(bool value)
+    {
+        _showDeregistered = value;
+        await LoadDataAsync();
     }
 
     private void GoBack()
@@ -148,6 +216,20 @@
         catch (Exception ex)
         {
             await MessageService.Error($"注销失败: {ex.Message}");
+        }
+    }
+
+    private async Task PurgeInstance(string instanceId)
+    {
+        try
+        {
+            await ServiceDiscoveryClient.PurgeInstanceAsync(instanceId);
+            await MessageService.Success("实例已永久删除");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"删除失败: {ex.Message}");
         }
     }
 }

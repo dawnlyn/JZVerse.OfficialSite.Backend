@@ -5,6 +5,7 @@ using JZVerse.MicroHuaxia.ConfigCenter.Core.Repositories;
 using JZVerse.MicroHuaxia.ConfigCenter.Core.Services;
 using JZVerse.MicroHuaxia.ConfigCenter.Server.BackgroundServices;
 using JZVerse.MicroHuaxia.ConfigCenter.Server.Configuration;
+using JZVerse.MicroHuaxia.ConfigCenter.Server.Services;
 using Microsoft.Extensions.Options;
 
 namespace JZVerse.MicroHuaxia.ConfigCenter.Server.Extensions;
@@ -68,6 +69,9 @@ public static class ConfigCenterServerExtensions
         services.AddSingleton<IConfigRegistry, ConfigRegistry>();
         services.AddSingleton<IConfigDiscovery, ConfigDiscoveryService>();
         services.AddSingleton<IGrayReleaseManager, GrayReleaseManager>();
+
+        // 注册长轮询管理器（单例，订阅 IConfigEventPublisher 的变更事件）
+        services.AddSingleton<ConfigLongPollManager>();
 
         // 注册持久化存储
         services.AddSingleton(sp =>

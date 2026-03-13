@@ -1,15 +1,30 @@
 @page "/"
 @inject IDashboardDataService DataService
 @inject IOptions<DashboardOptions> Options
+@inject IProcessManagerApiClient ProcessClient
+@inject IMessageService MessageService
 
 <PageTitle>@Options.Value.Title</PageTitle>
 
 <div>
     <PageHeader Title="系统总览" SubTitle="MicroHuaxia 微服务框架运行状态">
         <PageHeaderExtra>
-            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                刷新
-            </Button>
+            <Space>
+                <SpaceItem>
+                    <Popconfirm Title="确定要一键重启所有微服务吗？此操作将先停止再逐个启动所有服务。"
+                                OkText="确认重启" CancelText="取消"
+                                OnConfirm="RestartAllServicesAsync">
+                        <Button Danger Icon="@IconType.Outline.Sync" Loading="@_restarting">
+                            一键重启
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
         </PageHeaderExtra>
     </PageHeader>
 
@@ -90,6 +105,23 @@
                 </Row>
             </Card>
         </Col>
+
+        @* Saga 统计 *@
+        <Col Xs="24" Sm="12" Lg="8">
+            <Card Bordered Title="Saga 编排">
+                <Row Gutter="16">
+                    <Col Span="8">
+                        <Statistic Title="总实例" Value="@_overview.Saga.TotalInstances" />
+                    </Col>
+                    <Col Span="8">
+                        <Statistic Title="执行中" Value="@_overview.Saga.Executing" ValueStyle="color: #1890ff" />
+                    </Col>
+                    <Col Span="8">
+                        <Statistic Title="失败" Value="@_overview.Saga.Failed" ValueStyle="color: #f5222d" />
+                    </Col>
+                </Row>
+            </Card>
+        </Col>
     </Row>
 
     @* 快捷入口 *@
@@ -115,6 +147,11 @@
                     审计日志
                 </Button>
             </Col>
+            <Col Xs="12" Sm="8" Md="6" Lg="4">
+                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Dashboard" OnClick="@(() => NavigateTo("/processes"))">
+                    进程管理
+                </Button>
+            </Col>
         </Row>
     </Card>
 </div>
@@ -125,6 +162,7 @@
 
     private DashboardOverview _overview = new();
     private bool _loading = false;
+    private bool _restarting = false;
 
     RenderFragment cloudServer =@<Icon Type="cloud-server" />;
     RenderFragment cluster =@<Icon Type="cluster" />;
@@ -145,6 +183,24 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task RestartAllServicesAsync()
+    {
+        _restarting = true;
+        try
+        {
+            await ProcessClient.RestartAllAsync();
+            await MessageService.Success("所有服务已开始重启，请稍后查看进程管理页面确认状态");
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"一键重启失败: {ex.Message}");
+        }
+        finally
+        {
+            _restarting = false;
         }
     }
 

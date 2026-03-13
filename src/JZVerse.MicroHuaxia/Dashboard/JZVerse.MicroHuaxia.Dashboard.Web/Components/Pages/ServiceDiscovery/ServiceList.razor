@@ -7,9 +7,19 @@
 <div>
     <PageHeader Title="服务列表" SubTitle="查看和管理所有注册的服务">
         <PageHeaderExtra>
-            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                刷新
-            </Button>
+            <Space>
+                <SpaceItem>
+                    <Switch @bind-Checked="@_showDeregistered"
+                            CheckedChildren="显示已下线"
+                            UnCheckedChildren="隐藏已下线"
+                            OnChange="OnShowDeregisteredChanged" />
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
         </PageHeaderExtra>
     </PageHeader>
 
@@ -17,7 +27,8 @@
            DataSource="@_services"
            Loading="@_loading"
            Bordered
-           Size="TableSize.Middle">
+           Size="TableSize.Middle"
+           RowClassName="@(r => r.Data.Status == ServiceStatus.Offline ? "deregistered-row" : "")">
         <PropertyColumn Property="c => c.ServiceName" Title="服务名称">
             <a @onclick="() => ViewDetail(context.ServiceName)" style="cursor: pointer;">
                 @context.ServiceName
@@ -32,6 +43,14 @@
                 @context.UnhealthyCount
             </span>
         </PropertyColumn>
+        @if (_showDeregistered)
+        {
+            <PropertyColumn Property="c => c.DeregisteredCount" Title="已下线" Width="80">
+                <span style="color: @(context.DeregisteredCount > 0 ? "#8c8c8c" : "#999");">
+                    @context.DeregisteredCount
+                </span>
+            </PropertyColumn>
+        }
         <PropertyColumn Property="c => c.Status" Title="状态" Width="120">
             @switch (context.Status)
             {
@@ -41,8 +60,11 @@
                 case ServiceStatus.PartialHealthy:
                     <Tag Color="orange">部分健康</Tag>
                     break;
-                case ServiceStatus.Unhealthy:
-                    <Tag Color="red">不健康</Tag>
+                case ServiceStatus.Fault:
+                    <Tag Color="red">故障</Tag>
+                    break;
+                case ServiceStatus.Offline:
+                    <Tag Color="default">已下线</Tag>
                     break;
                 default:
                     <Tag>未知</Tag>
@@ -57,9 +79,16 @@
     </Table>
 </div>
 
+<style>
+    .deregistered-row {
+        opacity: 0.6;
+    }
+</style>
+
 @code {
     private List<ServiceInfo> _services = new();
     private bool _loading = false;
+    private bool _showDeregistered = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,12 +100,18 @@
         _loading = true;
         try
         {
-            _services = await ServiceDiscoveryClient.GetServicesAsync();
+            _services = await ServiceDiscoveryClient.GetServicesAsync(_showDeregistered);
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task OnShowDeregisteredChanged(bool value)
+    {
+        _showDeregistered = value;
+        await LoadDataAsync();
     }
 
     private void ViewDetail(string serviceName)

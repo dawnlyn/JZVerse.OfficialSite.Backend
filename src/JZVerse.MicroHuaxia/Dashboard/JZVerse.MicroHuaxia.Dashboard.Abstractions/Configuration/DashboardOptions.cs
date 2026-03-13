@@ -65,6 +65,11 @@ public class ServiceEndpointsOptions
     /// Saga 服务地址
     /// </summary>
     public string Saga { get; set; } = "http://localhost:5000";
+
+    /// <summary>
+    /// ProcessManager 服务地址
+    /// </summary>
+    public string ProcessManager { get; set; } = "http://localhost:5200";
 }
 
 /// <summary>

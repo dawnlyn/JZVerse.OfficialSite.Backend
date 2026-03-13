@@ -1,0 +1,493 @@
+@page "/configs/gray-release"
+@inject IConfigCenterApiClient ConfigCenterClient
+@inject IMessageService MessageService
+
+<PageTitle>灰度发布</PageTitle>
+
+<div>
+    <PageHeader Title="灰度发布" SubTitle="管理配置灰度发布">
+        <PageHeaderExtra>
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Plus" OnClick="ShowCreateModal">
+                        新建发布
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @* 命名空间与环境选择 *@
+    <Card Size="small" Style="margin-bottom: 16px;">
+        <Row Gutter="16">
+            <Col Span="8">
+                <span style="margin-right: 8px;">命名空间:</span>
+                <Select TItem="ConfigNamespace"
+                        TItemValue="string"
+                        DataSource="@_namespaces"
+                        ValueName="@nameof(ConfigNamespace.Id)"
+                        LabelName="@nameof(ConfigNamespace.Name)"
+                        @bind-Value="@_selectedNamespaceId"
+                        Placeholder="请选择命名空间"
+                        Style="width: 200px;"
+                        OnSelectedItemChanged="OnNamespaceChanged" />
+            </Col>
+            <Col Span="8">
+                <span style="margin-right: 8px;">环境:</span>
+                <Input @bind-Value="@_environmentId" Placeholder="环境标识 (如 Production)" Style="width: 200px;" />
+            </Col>
+            <Col Span="8">
+                <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="LoadReleasesAsync" Disabled="@(string.IsNullOrEmpty(_selectedNamespaceId) || string.IsNullOrEmpty(_environmentId))">
+                    查询
+                </Button>
+            </Col>
+        </Row>
+    </Card>
+
+    @* 灰度发布列表 *@
+    <Card Title="发布列表" Size="small">
+        <Table TItem="GrayReleaseInfo"
+               DataSource="@_releases"
+               Loading="@_loadingReleases"
+               Size="TableSize.Small">
+            <PropertyColumn Property="c => c.ReleaseName" Title="发布名称" />
+            <PropertyColumn Property="c => c.Strategy" Title="策略" Width="100">
+                <Tag Color="@GetStrategyColor(context.Strategy)">@GetStrategyText(context.Strategy)</Tag>
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
+                <Tag Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</Tag>
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.RolloutPercentage" Title="发布比例" Width="90">
+                @(context.RolloutPercentage)%
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.CreatedAt" Title="创建时间" Width="160">
+                @context.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+            </PropertyColumn>
+            <ActionColumn Title="操作" Width="240">
+                <Space>
+                    <SpaceItem>
+                        <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ShowDetail(context)">
+                            详情
+                        </Button>
+                    </SpaceItem>
+                    @if (context.Status == "Draft")
+                    {
+                        <SpaceItem>
+                            <Popconfirm Title="确定要开始此灰度发布吗？" OkText="确定" CancelText="取消"
+                                        OnConfirm="() => StartRelease(context.ReleaseId)">
+                                <Button Type="@ButtonType.Link" Icon="@IconType.Outline.PlayCircle">
+                                    开始
+                                </Button>
+                            </Popconfirm>
+                        </SpaceItem>
+                    }
+                    @if (context.Status == "InProgress")
+                    {
+                        <SpaceItem>
+                            <Popconfirm Title="确定要完成此灰度发布吗？配置将全量推送。" OkText="确定" CancelText="取消"
+                                        OnConfirm="() => CompleteRelease(context.ReleaseId)">
+                                <Button Type="@ButtonType.Link" Icon="@IconType.Outline.CheckCircle">
+                                    完成
+                                </Button>
+                            </Popconfirm>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Popconfirm Title="确定要回滚此灰度发布吗？" OkText="确定" CancelText="取消"
+                                        OnConfirm="() => RollbackRelease(context.ReleaseId)">
+                                <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Rollback">
+                                    回滚
+                                </Button>
+                            </Popconfirm>
+                        </SpaceItem>
+                    }
+                </Space>
+            </ActionColumn>
+        </Table>
+    </Card>
+</div>
+
+@* 新建灰度发布模态框 *@
+<Modal Title="新建灰度发布"
+       Visible="@_createModalVisible"
+       OnOk="@CreateRelease"
+       OnCancel="@(() => _createModalVisible = false)"
+       ConfirmLoading="@_saving"
+       Width="640">
+    <Form Model="@_createInput" LabelColSpan="6" WrapperColSpan="18">
+        <FormItem Label="发布名称">
+            <Input @bind-Value="@_createInput.ReleaseName" Placeholder="请输入发布名称" />
+        </FormItem>
+        <FormItem Label="命名空间">
+            <Select TItem="ConfigNamespace"
+                    TItemValue="string"
+                    DataSource="@_namespaces"
+                    ValueName="@nameof(ConfigNamespace.Id)"
+                    LabelName="@nameof(ConfigNamespace.Name)"
+                    @bind-Value="@_createInput.NamespaceId"
+                    Placeholder="请选择命名空间" />
+        </FormItem>
+        <FormItem Label="环境">
+            <Input @bind-Value="@_createInput.EnvironmentId" Placeholder="环境标识 (如 Production)" />
+        </FormItem>
+        <FormItem Label="策略">
+            <Select TItemValue="string" TItem="string" @bind-Value="@_createInput.Strategy">
+                <SelectOptions>
+                    <SelectOption TItemValue="string" TItem="string" Value="@("Manual")" Label="手动灰度" />
+                    <SelectOption TItemValue="string" TItem="string" Value="@("Automatic")" Label="自动灰度" />
+                    <SelectOption TItemValue="string" TItem="string" Value="@("Canary")" Label="金丝雀发布" />
+                </SelectOptions>
+            </Select>
+        </FormItem>
+        <FormItem Label="发布比例">
+            <AntDesign.Slider TValue="int" @bind-Value="@_createInput.RolloutPercentage" Min="0" Max="100" />
+        </FormItem>
+        <FormItem Label="灰度规则">
+            @foreach (var (rule, index) in _createInput.Rules.Select((r, i) => (r, i)))
+            {
+                <AntDesign.Row Gutter="8" Style="margin-bottom: 8px;">
+                    <AntDesign.Col Span="7">
+                        <Select TItemValue="string" TItem="string" @bind-Value="@rule.RuleType" Placeholder="类型" Style="width: 100%;">
+                            <SelectOptions>
+                                <SelectOption TItemValue="string" TItem="string" Value="@("IP")" Label="IP" />
+                                <SelectOption TItemValue="string" TItem="string" Value="@("Tag")" Label="标签" />
+                                <SelectOption TItemValue="string" TItem="string" Value="@("ClientId")" Label="客户端 ID" />
+                                <SelectOption TItemValue="string" TItem="string" Value="@("Percentage")" Label="百分比" />
+                            </SelectOptions>
+                        </Select>
+                    </AntDesign.Col>
+                    <AntDesign.Col Span="11">
+                        <Input @bind-Value="@rule.MatchPattern" Placeholder="匹配模式" />
+                    </AntDesign.Col>
+                    <AntDesign.Col Span="4">
+                        <AntDesign.InputNumber TValue="int" @bind-Value="@rule.Priority" Min="0" Placeholder="优先级" Style="width: 100%;" />
+                    </AntDesign.Col>
+                    <AntDesign.Col Span="2">
+                        <Button Type="@ButtonType.Text" Danger Icon="@IconType.Outline.Delete" OnClick="() => RemoveRule(index)" />
+                    </AntDesign.Col>
+                </AntDesign.Row>
+            }
+            <Button Type="@ButtonType.Dashed" Icon="@IconType.Outline.Plus" OnClick="AddRule" Block>
+                添加规则
+            </Button>
+        </FormItem>
+    </Form>
+</Modal>
+
+@* 灰度发布详情抽屉 *@
+<Drawer Title="@($"灰度发布详情 - {_detailRelease?.ReleaseName}")"
+        Width="640"
+        Visible="@_drawerVisible"
+        OnClose="@(() => _drawerVisible = false)">
+    @if (_detailRelease != null)
+    {
+        <Descriptions Bordered Column="2" Size="small">
+            <DescriptionsItem Title="发布 ID">@_detailRelease.ReleaseId</DescriptionsItem>
+            <DescriptionsItem Title="发布名称">@_detailRelease.ReleaseName</DescriptionsItem>
+            <DescriptionsItem Title="策略">
+                <Tag Color="@GetStrategyColor(_detailRelease.Strategy)">@GetStrategyText(_detailRelease.Strategy)</Tag>
+            </DescriptionsItem>
+            <DescriptionsItem Title="状态">
+                <Tag Color="@GetStatusColor(_detailRelease.Status)">@GetStatusText(_detailRelease.Status)</Tag>
+            </DescriptionsItem>
+            <DescriptionsItem Title="发布比例">@(_detailRelease.RolloutPercentage)%</DescriptionsItem>
+            <DescriptionsItem Title="创建人">@(_detailRelease.CreatedBy ?? "-")</DescriptionsItem>
+            <DescriptionsItem Title="创建时间">@_detailRelease.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</DescriptionsItem>
+            <DescriptionsItem Title="开始时间">@(_detailRelease.StartedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</DescriptionsItem>
+            <DescriptionsItem Title="完成时间" Span="2">@(_detailRelease.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</DescriptionsItem>
+        </Descriptions>
+
+        @* 灰度规则 *@
+        <Divider Orientation="left">灰度规则</Divider>
+        @if (_detailRelease.TargetRules.Count == 0)
+        {
+            <Empty Description="@("暂无规则")" Simple />
+        }
+        else
+        {
+            <Table TItem="GrayRuleInfo"
+                   DataSource="@_detailRelease.TargetRules"
+                   Size="TableSize.Small"
+                   HidePagination>
+                <PropertyColumn Property="r => r.RuleType" Title="规则类型" Width="120">
+                    <Tag>@context.RuleType</Tag>
+                </PropertyColumn>
+                <PropertyColumn Property="r => r.MatchPattern" Title="匹配模式" />
+                <PropertyColumn Property="r => r.Priority" Title="优先级" Width="80" />
+            </Table>
+        }
+
+        @* 配置快照 *@
+        @if (_detailRelease.ConfigSnapshot.Count > 0)
+        {
+            <Divider Orientation="left">配置快照</Divider>
+            <Table TItem="KeyValuePair<string, string>"
+                   DataSource="@_detailRelease.ConfigSnapshot.ToList()"
+                   Size="TableSize.Small"
+                   HidePagination>
+                <PropertyColumn Property="c => c.Key" Title="配置键" />
+                <PropertyColumn Property="c => c.Value" Title="配置值" Ellipsis />
+            </Table>
+        }
+
+        @* 客户端匹配测试 *@
+        <Divider Orientation="left">匹配测试</Divider>
+        <Form Model="@_testInput" Layout="@FormLayout.Inline">
+            <FormItem Label="客户端 ID">
+                <Input @bind-Value="@_testInput.ClientId" Placeholder="客户端 ID" Style="width: 120px;" />
+            </FormItem>
+            <FormItem Label="IP">
+                <Input @bind-Value="@_testInput.IpAddress" Placeholder="IP 地址" Style="width: 120px;" />
+            </FormItem>
+            <FormItem Label="标签">
+                <Input @bind-Value="@_testInput.Tags" Placeholder="逗号分隔" Style="width: 120px;" />
+            </FormItem>
+            <FormItem>
+                <Button Type="@ButtonType.Primary" OnClick="TestMatch" Loading="@_testing">
+                    测试
+                </Button>
+            </FormItem>
+        </Form>
+        @if (_testResult != null)
+        {
+            <div style="margin-top: 12px;">
+                @if (_testResult.Matches)
+                {
+                    <Alert Type="@AlertType.Success" Message="匹配成功" Description="@($"客户端匹配灰度发布 {_testResult.ReleaseId}")" />
+                }
+                else
+                {
+                    <Alert Type="@AlertType.Warning" Message="未匹配" Description="客户端不在灰度规则范围内" />
+                }
+            </div>
+        }
+    }
+</Drawer>
+
+@code {
+    private List<ConfigNamespace> _namespaces = [];
+    private List<GrayReleaseInfo> _releases = [];
+    private bool _loading;
+    private bool _loadingReleases;
+    private bool _saving;
+    private bool _testing;
+    private string? _selectedNamespaceId;
+    private string _environmentId = "Production";
+
+    // 新建发布
+    private bool _createModalVisible;
+    private CreateGrayReleaseInput _createInput = new();
+
+    // 详情抽屉
+    private bool _drawerVisible;
+    private GrayReleaseInfo? _detailRelease;
+    private ClientMatchTestInput _testInput = new();
+    private ClientMatchTestResult? _testResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _namespaces = await ConfigCenterClient.GetNamespacesAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnNamespaceChanged(ConfigNamespace? ns)
+    {
+        if (ns != null)
+        {
+            _selectedNamespaceId = ns.Id;
+            await LoadReleasesAsync();
+        }
+    }
+
+    private async Task LoadReleasesAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedNamespaceId) || string.IsNullOrEmpty(_environmentId)) return;
+
+        _loadingReleases = true;
+        try
+        {
+            _releases = await ConfigCenterClient.GetGrayReleasesAsync(_selectedNamespaceId, _environmentId);
+        }
+        finally
+        {
+            _loadingReleases = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        _createInput = new CreateGrayReleaseInput
+        {
+            NamespaceId = _selectedNamespaceId ?? string.Empty,
+            EnvironmentId = _environmentId,
+            Strategy = "Manual"
+        };
+        _createModalVisible = true;
+    }
+
+    private async Task CreateRelease()
+    {
+        if (string.IsNullOrWhiteSpace(_createInput.ReleaseName))
+        {
+            await MessageService.Warning("请输入发布名称");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await ConfigCenterClient.CreateGrayReleaseAsync(_createInput);
+            await MessageService.Success("灰度发布已创建");
+            _createModalVisible = false;
+            await LoadReleasesAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"创建失败: {ex.Message}");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task StartRelease(string releaseId)
+    {
+        try
+        {
+            await ConfigCenterClient.StartGrayReleaseAsync(releaseId);
+            await MessageService.Success("灰度发布已开始");
+            await LoadReleasesAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"操作失败: {ex.Message}");
+        }
+    }
+
+    private async Task CompleteRelease(string releaseId)
+    {
+        try
+        {
+            await ConfigCenterClient.CompleteGrayReleaseAsync(releaseId);
+            await MessageService.Success("灰度发布已完成");
+            await LoadReleasesAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"操作失败: {ex.Message}");
+        }
+    }
+
+    private async Task RollbackRelease(string releaseId)
+    {
+        try
+        {
+            await ConfigCenterClient.RollbackGrayReleaseAsync(releaseId);
+            await MessageService.Success("灰度发布已回滚");
+            await LoadReleasesAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"操作失败: {ex.Message}");
+        }
+    }
+
+    private async Task ShowDetail(GrayReleaseInfo release)
+    {
+        _detailRelease = await ConfigCenterClient.GetGrayReleaseAsync(release.ReleaseId) ?? release;
+        _testInput = new ClientMatchTestInput();
+        _testResult = null;
+        _drawerVisible = true;
+    }
+
+    private async Task TestMatch()
+    {
+        if (_detailRelease == null || string.IsNullOrWhiteSpace(_testInput.ClientId))
+        {
+            await MessageService.Warning("请输入客户端 ID");
+            return;
+        }
+
+        _testing = true;
+        try
+        {
+            _testResult = await ConfigCenterClient.TestGrayReleaseMatchAsync(_detailRelease.ReleaseId, _testInput);
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"测试失败: {ex.Message}");
+        }
+        finally
+        {
+            _testing = false;
+        }
+    }
+
+    private void AddRule()
+    {
+        _createInput.Rules.Add(new GrayRuleInfo { RuleType = "IP", Priority = _createInput.Rules.Count });
+    }
+
+    private void RemoveRule(int index)
+    {
+        if (index >= 0 && index < _createInput.Rules.Count)
+        {
+            _createInput.Rules.RemoveAt(index);
+        }
+    }
+
+    // 样式辅助
+
+    private static string GetStrategyColor(string strategy) => strategy switch
+    {
+        "Manual" => "blue",
+        "Automatic" => "green",
+        "Canary" => "orange",
+        _ => "default"
+    };
+
+    private static string GetStrategyText(string strategy) => strategy switch
+    {
+        "Manual" => "手动灰度",
+        "Automatic" => "自动灰度",
+        "Canary" => "金丝雀",
+        _ => strategy
+    };
+
+    private static string GetStatusColor(string status) => status switch
+    {
+        "Draft" => "default",
+        "InProgress" => "processing",
+        "Completed" => "success",
+        "Rollback" => "warning",
+        "Cancelled" => "error",
+        _ => "default"
+    };
+
+    private static string GetStatusText(string status) => status switch
+    {
+        "Draft" => "草稿",
+        "InProgress" => "进行中",
+        "Completed" => "已完成",
+        "Rollback" => "已回滚",
+        "Cancelled" => "已取消",
+        _ => status
+    };
+}

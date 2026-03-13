@@ -1,0 +1,231 @@
+@page "/configs/migration"
+@inject IConfigMigrationService MigrationService
+@inject IMessageService MessageService
+
+<PageTitle>配置迁移</PageTitle>
+
+<div>
+    <PageHeader Title="配置迁移" SubTitle="将微服务本地配置迁移到配置中心">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadProfilesAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Alert Type="@AlertType.Info"
+           Message="此工具用于将各微服务 appsettings.json 中的非引导配置迁移到 ConfigCenter。"
+           Description="引导配置（如监听端口、服务发现地址等）将保留在本地，不会被迁移。"
+           ShowIcon="true"
+           Style="margin-bottom: 16px;" />
+
+    <Table TItem="ConfigMigrationProfile"
+           DataSource="@_profiles"
+           Loading="@_loading"
+           Size="TableSize.Small">
+        <PropertyColumn Property="p => p.DisplayName" Title="服务名称" />
+        <PropertyColumn Property="p => p.TargetNamespace" Title="目标命名空间" />
+        <PropertyColumn Property="p => p.TargetEnvironment" Title="目标环境" Width="100" />
+        <PropertyColumn Property="p => p.BootstrapPrefixes" Title="Bootstrap 前缀数" Width="140">
+            <Tag>@context.BootstrapPrefixes.Count 个规则</Tag>
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="200">
+            <Space>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye"
+                            OnClick="() => PreviewMigration(context)">
+                        预览
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="@($"确定将 {context.DisplayName} 的非引导配置迁移到 ConfigCenter 吗？")"
+                                OkText="确认迁移" CancelText="取消"
+                                OnConfirm="() => ExecuteMigration(context)">
+                        <Button Type="@ButtonType.Link" Icon="@IconType.Outline.CloudUpload"
+                                Loading="@(_migratingService == context.ServiceName)">
+                            迁移
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+            </Space>
+        </ActionColumn>
+    </Table>
+</div>
+
+@* 预览抽屉 *@
+<Drawer Title="@($"迁移预览 - {_previewProfile?.DisplayName}")"
+        Width="720"
+        Visible="@_previewVisible"
+        OnClose="@(() => _previewVisible = false)">
+    @if (_previewLoading)
+    {
+        <Spin Tip="正在加载配置..." Size="large" Style="display: block; text-align: center; padding: 40px 0;" />
+    }
+    else
+    {
+        <AntDesign.Row Gutter="16" Style="margin-bottom: 16px;">
+            <AntDesign.Col Span="12">
+                <Statistic Title="待迁移项" Value="@_previewItems.Count(i => !i.IsBootstrap)" />
+            </AntDesign.Col>
+            <AntDesign.Col Span="12">
+                <Statistic Title="Bootstrap 项 (跳过)" Value="@_previewItems.Count(i => i.IsBootstrap)" />
+            </AntDesign.Col>
+        </AntDesign.Row>
+
+        <Divider Orientation="left">待迁移配置</Divider>
+        <Table TItem="ConfigMigrationPreviewItem"
+               DataSource="@_previewItems.Where(i => !i.IsBootstrap).ToList()"
+               Size="TableSize.Small"
+               HidePagination>
+            <PropertyColumn Property="i => i.Key" Title="配置键">
+                <span style="font-family: monospace; font-size: 13px;">@context.Key</span>
+            </PropertyColumn>
+            <PropertyColumn Property="i => i.Value" Title="值" Ellipsis>
+                <Tooltip Title="@context.Value">
+                    <span style="font-family: monospace;">@(context.Value.Length > 40 ? context.Value[..40] + "..." : context.Value)</span>
+                </Tooltip>
+            </PropertyColumn>
+            <PropertyColumn Property="i => i.ValueType" Title="类型" Width="80">
+                <Tag>@context.ValueType</Tag>
+            </PropertyColumn>
+        </Table>
+
+        @if (_previewItems.Any(i => i.IsBootstrap))
+        {
+            <Divider Orientation="left">Bootstrap 配置 (保留在本地)</Divider>
+            <Table TItem="ConfigMigrationPreviewItem"
+                   DataSource="@_previewItems.Where(i => i.IsBootstrap).ToList()"
+                   Size="TableSize.Small"
+                   HidePagination>
+                <PropertyColumn Property="i => i.Key" Title="配置键">
+                    <span style="font-family: monospace; font-size: 13px; color: #999;">@context.Key</span>
+                </PropertyColumn>
+                <PropertyColumn Property="i => i.Value" Title="值" Ellipsis>
+                    <span style="font-family: monospace; color: #999;">@(context.Value.Length > 40 ? context.Value[..40] + "..." : context.Value)</span>
+                </PropertyColumn>
+            </Table>
+        }
+    }
+</Drawer>
+
+@* 迁移结果模态框 *@
+<Modal Title="迁移结果"
+       Visible="@_resultVisible"
+       OnOk="@(() => _resultVisible = false)"
+       OnCancel="@(() => _resultVisible = false)"
+       Footer="null">
+    @if (_lastResult != null)
+    {
+        <Result Status="@(_lastResult.Success ? "success" : "warning")"
+                Title="@(_lastResult.Success ? "迁移完成" : "迁移部分失败")"
+                SubTitle="@($"服务: {_lastResult.ServiceName} → 命名空间: {_lastResult.TargetNamespace}")">
+            <Extra>
+                <Descriptions Bordered Column="1" Size="small">
+                    <DescriptionsItem Title="总配置项">@_lastResult.TotalItems</DescriptionsItem>
+                    <DescriptionsItem Title="成功迁移">
+                        <span style="color: green; font-weight: bold;">@_lastResult.MigratedItems</span>
+                    </DescriptionsItem>
+                    <DescriptionsItem Title="Bootstrap 跳过">@_lastResult.SkippedBootstrap</DescriptionsItem>
+                    @if (_lastResult.FailedItems > 0)
+                    {
+                        <DescriptionsItem Title="迁移失败">
+                            <span style="color: red; font-weight: bold;">@_lastResult.FailedItems</span>
+                        </DescriptionsItem>
+                    }
+                </Descriptions>
+                @if (_lastResult.Errors.Count > 0)
+                {
+                    <div style="margin-top: 16px;">
+                        @foreach (var error in _lastResult.Errors)
+                        {
+                            <Alert Type="@AlertType.Error" Message="@error" Style="margin-bottom: 8px;" />
+                        }
+                    </div>
+                }
+            </Extra>
+        </Result>
+    }
+</Modal>
+
+@code {
+    private List<ConfigMigrationProfile> _profiles = [];
+    private bool _loading;
+
+    // 预览
+    private bool _previewVisible;
+    private bool _previewLoading;
+    private ConfigMigrationProfile? _previewProfile;
+    private List<ConfigMigrationPreviewItem> _previewItems = [];
+
+    // 迁移
+    private string? _migratingService;
+    private bool _resultVisible;
+    private ConfigMigrationResult? _lastResult;
+
+    protected override Task OnInitializedAsync()
+    {
+        return LoadProfilesAsync();
+    }
+
+    private Task LoadProfilesAsync()
+    {
+        _loading = true;
+        try
+        {
+            _profiles = MigrationService.GetProfiles();
+        }
+        finally
+        {
+            _loading = false;
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task PreviewMigration(ConfigMigrationProfile profile)
+    {
+        _previewProfile = profile;
+        _previewVisible = true;
+        _previewLoading = true;
+
+        try
+        {
+            _previewItems = await MigrationService.PreviewAsync(profile.ServiceName);
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"预览失败: {ex.Message}");
+            _previewItems = [];
+        }
+        finally
+        {
+            _previewLoading = false;
+        }
+    }
+
+    private async Task ExecuteMigration(ConfigMigrationProfile profile)
+    {
+        _migratingService = profile.ServiceName;
+        try
+        {
+            _lastResult = await MigrationService.MigrateAsync(profile.ServiceName);
+            _resultVisible = true;
+
+            if (_lastResult.Success)
+            {
+                await MessageService.Success($"{profile.DisplayName} 配置迁移完成，共迁移 {_lastResult.MigratedItems} 项");
+            }
+            else
+            {
+                await MessageService.Warning($"{profile.DisplayName} 配置迁移部分失败，请查看详情");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"迁移失败: {ex.Message}");
+        }
+        finally
+        {
+            _migratingService = null;
+        }
+    }
+}

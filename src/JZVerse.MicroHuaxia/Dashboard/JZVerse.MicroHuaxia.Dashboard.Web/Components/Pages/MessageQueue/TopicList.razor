@@ -1,0 +1,102 @@
+@page "/mq/topics"
+@inject IMessageQueueApiClient MqClient
+@inject NavigationManager NavigationManager
+
+<PageTitle>Topic 管理</PageTitle>
+
+<div>
+    <PageHeader Title="Topic 管理" SubTitle="查看和管理消息队列 Topic">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @* 统计卡片 *@
+    <AntDesign.Row Gutter="(16, 16)" Style="margin-bottom: 16px;">
+        <AntDesign.Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered Size="small">
+                <Statistic Title="Topic 总数" Value="@_stats.TotalTopics" ValueStyle="color: #1890ff" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered Size="small">
+                <Statistic Title="消息总数" Value="@_stats.TotalMessages" ValueStyle="color: #722ed1" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered Size="small">
+                <Statistic Title="待消费消息" Value="@_stats.PendingMessages" ValueStyle="color: #faad14" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Xs="24" Sm="12" Lg="6">
+            <Card Bordered Size="small">
+                <Statistic Title="吞吐量 (msg/s)" Value="@_stats.MessagesPerSecond" Precision="2" ValueStyle="color: #52c41a" />
+            </Card>
+        </AntDesign.Col>
+    </AntDesign.Row>
+
+    @* Topic 列表 *@
+    <Table TItem="MqTopicInfo"
+           DataSource="@_topics"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle"
+           OnRow="OnRow">
+        <PropertyColumn Property="c => c.Name" Title="Topic 名称">
+            <a @onclick="() => ViewDetail(context.Name)" @onclick:preventDefault style="cursor: pointer; color: #1890ff;">
+                @context.Name
+            </a>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.PartitionCount" Title="分区数" Width="100" Align="ColumnAlign.Center" />
+        <PropertyColumn Property="c => c.TotalMessages" Title="消息总数" Width="120" Align="ColumnAlign.Right" />
+        <PropertyColumn Property="c => c.SubscriberCount" Title="订阅者数" Width="100" Align="ColumnAlign.Center">
+            <Tag Color="@(context.SubscriberCount > 0 ? "green" : "default")">@context.SubscriberCount</Tag>
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="100" Align="ColumnAlign.Center">
+            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ViewDetail(context.Name)">
+                详情
+            </Button>
+        </ActionColumn>
+    </Table>
+</div>
+
+@code {
+    private List<MqTopicInfo> _topics = [];
+    private MessageQueueStats _stats = new();
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            var statsTask = MqClient.GetStatsAsync();
+            var topicsTask = MqClient.GetTopicsAsync();
+            await Task.WhenAll(statsTask, topicsTask);
+
+            _stats = statsTask.Result;
+            _topics = topicsTask.Result;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ViewDetail(string topicName)
+    {
+        NavigationManager.NavigateTo($"/mq/topics/{Uri.EscapeDataString(topicName)}");
+    }
+
+    private Dictionary<string, object> OnRow(RowData<MqTopicInfo> row)
+    {
+        return new Dictionary<string, object>();
+    }
+}

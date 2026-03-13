@@ -53,6 +53,15 @@ public static class DashboardServiceExtensions
         services.AddHttpClient<IServiceDiscoveryApiClient, ServiceDiscoveryApiClient>();
         services.AddHttpClient<IConfigCenterApiClient, ConfigCenterApiClient>();
         services.AddHttpClient<IGatewayApiClient, GatewayApiClient>();
+        services.AddHttpClient<IMessageQueueApiClient, MessageQueueApiClient>();
+        services.AddHttpClient<ISagaApiClient, SagaApiClient>();
+        services.AddHttpClient<IProcessManagerApiClient, ProcessManagerApiClient>();
+
+        // 注册系统配置聚合服务
+        services.AddScoped<ISystemConfigService, SystemConfigService>();
+
+        // 注册配置迁移服务
+        services.AddScoped<IConfigMigrationService, ConfigMigrationService>();
 
         // 添加 Ant Design Blazor
         services.AddAntDesign();

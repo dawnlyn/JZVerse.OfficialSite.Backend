@@ -1,0 +1,64 @@
+@page "/mq/connections"
+@inject IMessageQueueApiClient MqClient
+
+<PageTitle>客户端连接</PageTitle>
+
+<div>
+    <PageHeader Title="客户端连接" SubTitle="查看消息队列客户端连接状态">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Table TItem="MqClientConnectionInfo"
+           DataSource="@_connections"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.ClientId" Title="客户端 ID">
+            <strong>@context.ClientId</strong>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.SessionId" Title="会话 ID" Width="220" Ellipsis />
+        <PropertyColumn Property="c => c.ConnectedAt" Title="连接时间" Width="180">
+            @context.ConnectedAt.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.Topics" Title="订阅 Topic">
+            @if (context.Topics.Count == 0)
+            {
+                <span style="color: #999;">-</span>
+            }
+            else
+            {
+                @foreach (var topic in context.Topics)
+                {
+                    <Tag Color="cyan" Style="margin-bottom: 4px;">@topic</Tag>
+                }
+            }
+        </PropertyColumn>
+    </Table>
+</div>
+
+@code {
+    private List<MqClientConnectionInfo> _connections = [];
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _connections = await MqClient.GetConnectionsAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

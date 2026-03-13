@@ -29,6 +29,15 @@
             <MenuItem Key="configs" RouterLink="/configs">
                 <span>配置管理</span>
             </MenuItem>
+            <MenuItem Key="system-config" RouterLink="/configs/system">
+                <span>系统配置</span>
+            </MenuItem>
+            <MenuItem Key="gray-release" RouterLink="/configs/gray-release">
+                <span>灰度发布</span>
+            </MenuItem>
+            <MenuItem Key="config-migration" RouterLink="/configs/migration">
+                <span>配置迁移</span>
+            </MenuItem>
         </ChildContent>
     </SubMenu>
     <SubMenu Key="gateway">
@@ -54,11 +63,21 @@
             <MenuItem Key="topics" RouterLink="/mq/topics">
                 <span>Topic 管理</span>
             </MenuItem>
+            <MenuItem Key="consumers" RouterLink="/mq/consumers">
+                <span>消费者组</span>
+            </MenuItem>
+            <MenuItem Key="connections" RouterLink="/mq/connections">
+                <span>客户端连接</span>
+            </MenuItem>
         </ChildContent>
     </SubMenu>
     <MenuItem Key="saga" RouterLink="/saga">
         <Icon Type="@IconType.Outline.NodeIndex" Theme="outline" />
         <span>Saga 监控</span>
+    </MenuItem>
+    <MenuItem Key="processes" RouterLink="/processes">
+        <Icon Type="@IconType.Outline.Dashboard" Theme="outline" />
+        <span>进程管理</span>
     </MenuItem>
 </Menu>
 
@@ -78,10 +97,19 @@
             "/" => "home",
             "/services" => "services",
             "/configs" => "configs",
+            "/configs/system" => "system-config",
+            "/configs/gray-release" => "gray-release",
+            "/configs/migration" => "config-migration",
             "/gateway/routes" => "routes",
             "/gateway/audit" => "audit",
             "/mq/topics" => "topics",
+            "/mq/consumers" => "consumers",
+            "/mq/connections" => "connections",
             "/saga" => "saga",
+            "/processes" => "processes",
+            _ when path.StartsWith("/services/") => "services",
+            _ when path.StartsWith("/mq/topics/") => "topics",
+            _ when path.StartsWith("/saga/") => "saga",
             _ => "home"
         };
     }

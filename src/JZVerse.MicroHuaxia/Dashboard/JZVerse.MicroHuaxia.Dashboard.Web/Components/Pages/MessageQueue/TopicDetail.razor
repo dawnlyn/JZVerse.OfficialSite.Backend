@@ -1,0 +1,117 @@
+@page "/mq/topics/{TopicName}"
+@inject IMessageQueueApiClient MqClient
+@inject NavigationManager NavigationManager
+@inject IMessageService MessageService
+
+<PageTitle>Topic 详情 - @TopicName</PageTitle>
+
+<div>
+    <PageHeader Title="@($"Topic: {TopicName}")" SubTitle="查看 Topic 分区和订阅者信息" OnBack="GoBack">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @if (_detail == null && !_loading)
+    {
+        <Result Status="404"
+                Title="Topic 不存在"
+                SubTitle="@($"未找到名为 '{TopicName}' 的 Topic")">
+            <Extra>
+                <Button Type="@ButtonType.Primary" OnClick="GoBack">返回列表</Button>
+            </Extra>
+        </Result>
+    }
+    else if (_detail != null)
+    {
+        @* 概览统计 *@
+        <AntDesign.Row Gutter="(16, 16)" Style="margin-bottom: 16px;">
+            <AntDesign.Col Xs="24" Sm="8">
+                <Card Bordered Size="small">
+                    <Statistic Title="分区数" Value="@_detail.Partitions.Count" ValueStyle="color: #1890ff" />
+                </Card>
+            </AntDesign.Col>
+            <AntDesign.Col Xs="24" Sm="8">
+                <Card Bordered Size="small">
+                    <Statistic Title="消息总数" Value="@_detail.TotalMessages" ValueStyle="color: #722ed1" />
+                </Card>
+            </AntDesign.Col>
+            <AntDesign.Col Xs="24" Sm="8">
+                <Card Bordered Size="small">
+                    <Statistic Title="订阅者数" Value="@_detail.Subscribers.Count" ValueStyle="color: #52c41a" />
+                </Card>
+            </AntDesign.Col>
+        </AntDesign.Row>
+
+        @* 分区信息 *@
+        <Card Title="分区信息" Style="margin-bottom: 16px;">
+            <Table TItem="MqPartitionInfo"
+                   DataSource="@_detail.Partitions"
+                   Bordered
+                   Size="TableSize.Small"
+                   HidePagination>
+                <PropertyColumn Property="c => c.PartitionId" Title="分区 ID" Width="100" Align="ColumnAlign.Center" />
+                <PropertyColumn Property="c => c.EarliestOffset" Title="最早偏移量" Align="ColumnAlign.Right" />
+                <PropertyColumn Property="c => c.LatestOffset" Title="最新偏移量" Align="ColumnAlign.Right" />
+                <PropertyColumn Property="c => c.MessageCount" Title="消息数" Align="ColumnAlign.Right">
+                    <span style="font-weight: 600;">@context.MessageCount</span>
+                </PropertyColumn>
+            </Table>
+        </Card>
+
+        @* 订阅者列表 *@
+        <Card Title="订阅者">
+            @if (_detail.Subscribers.Count == 0)
+            {
+                <Empty Description="@("暂无订阅者")" />
+            }
+            else
+            {
+                <Space Wrap>
+                    @foreach (var sub in _detail.Subscribers)
+                    {
+                        <SpaceItem>
+                            <Tag Color="blue" Style="font-size: 14px; padding: 4px 12px;">
+                                <Icon Type="@IconType.Outline.User" />
+                                @sub
+                            </Tag>
+                        </SpaceItem>
+                    }
+                </Space>
+            }
+        </Card>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string TopicName { get; set; } = string.Empty;
+
+    private MqTopicDetail? _detail;
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _detail = await MqClient.GetTopicDetailAsync(TopicName);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/mq/topics");
+    }
+}

@@ -5,6 +5,7 @@ using JZVerse.MicroHuaxia.MessageQueue.Core.Routing;
 using JZVerse.MicroHuaxia.MessageQueue.Core.Subscription;
 using JZVerse.MicroHuaxia.MessageQueue.Core.Transaction;
 using JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp;
+using JZVerse.MicroHuaxia.MessageQueue.Server.Management;
 using JZVerse.MicroHuaxia.MessageQueue.Storage.FileLog;
 using JZVerse.MicroHuaxia.MessageQueue.Storage.Memory;
 using Microsoft.Extensions.Configuration;
@@ -70,6 +71,9 @@ public static class BrokerServiceExtensions
 
         // 注册为 HostedService
         services.AddHostedService(sp => sp.GetRequiredService<BrokerServer>());
+
+        // 注册管理接口（与 BrokerServer 共享同一实例）
+        services.AddSingleton<IBrokerManagement>(sp => sp.GetRequiredService<BrokerServer>());
 
         return services;
     }

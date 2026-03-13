@@ -141,4 +141,9 @@ public class AuditLogQuery
     /// 每页数量
     /// </summary>
     public int PageSize { get; set; } = 20;
+
+    /// <summary>
+    /// 仅显示业务服务日志（TargetService 有值的记录）
+    /// </summary>
+    public bool BusinessOnly { get; set; } = true;
 }

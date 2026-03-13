@@ -12,17 +12,23 @@ public class DashboardDataService : IDashboardDataService
     private readonly IServiceDiscoveryApiClient _serviceDiscoveryClient;
     private readonly IConfigCenterApiClient _configCenterClient;
     private readonly IGatewayApiClient _gatewayClient;
+    private readonly IMessageQueueApiClient _mqClient;
+    private readonly ISagaApiClient _sagaClient;
     private readonly ILogger<DashboardDataService> _logger;
 
     public DashboardDataService(
         IServiceDiscoveryApiClient serviceDiscoveryClient,
         IConfigCenterApiClient configCenterClient,
         IGatewayApiClient gatewayClient,
+        IMessageQueueApiClient mqClient,
+        ISagaApiClient sagaClient,
         ILogger<DashboardDataService> logger)
     {
         _serviceDiscoveryClient = serviceDiscoveryClient;
         _configCenterClient = configCenterClient;
         _gatewayClient = gatewayClient;
+        _mqClient = mqClient;
+        _sagaClient = sagaClient;
         _logger = logger;
     }
 
@@ -35,7 +41,9 @@ public class DashboardDataService : IDashboardDataService
         {
             GetServiceDiscoveryStatsAsync(overview, cancellationToken),
             GetConfigCenterStatsAsync(overview, cancellationToken),
-            GetGatewayStatsAsync(overview, cancellationToken)
+            GetGatewayStatsAsync(overview, cancellationToken),
+            GetMessageQueueStatsAsync(overview, cancellationToken),
+            GetSagaStatsAsync(overview, cancellationToken)
         };
 
         try
@@ -86,6 +94,32 @@ public class DashboardDataService : IDashboardDataService
         {
             _logger.LogWarning(ex, "获取网关统计数据失败");
             overview.Gateway = new GatewayStats();
+        }
+    }
+
+    private async Task GetMessageQueueStatsAsync(DashboardOverview overview, CancellationToken cancellationToken)
+    {
+        try
+        {
+            overview.MessageQueue = await _mqClient.GetStatsAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "获取消息队列统计数据失败");
+            overview.MessageQueue = new MessageQueueStats();
+        }
+    }
+
+    private async Task GetSagaStatsAsync(DashboardOverview overview, CancellationToken cancellationToken)
+    {
+        try
+        {
+            overview.Saga = await _sagaClient.GetStatsAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "获取 Saga 统计数据失败");
+            overview.Saga = new SagaStats();
         }
     }
 }

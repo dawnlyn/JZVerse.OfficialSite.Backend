@@ -1,0 +1,269 @@
+@page "/saga/{InstanceId}"
+@inject ISagaApiClient SagaClient
+@inject NavigationManager NavigationManager
+@inject IMessageService MessageService
+
+<PageTitle>Saga 详情 - @InstanceId</PageTitle>
+
+<div>
+    <PageHeader Title="Saga 详情" SubTitle="@(_instance?.Name ?? InstanceId)" OnBack="GoBack">
+        <PageHeaderExtra>
+            <Space>
+                @if (_instance != null)
+                {
+                    @if (_instance.Status is "Failed" or "TimedOut")
+                    {
+                        <SpaceItem>
+                            <Popconfirm Title="确定要触发补偿吗？" OkText="确定" CancelText="取消"
+                                        OnConfirm="CompensateAsync">
+                                <Button Type="@ButtonType.Primary" Danger Icon="@IconType.Outline.Rollback">
+                                    触发补偿
+                                </Button>
+                            </Popconfirm>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Type="@ButtonType.Default" Icon="@IconType.Outline.PlayCircle"
+                                    OnClick="ResumeAsync">
+                                恢复执行
+                            </Button>
+                        </SpaceItem>
+                    }
+                    @if (_instance.Status is "Executing" or "Compensating")
+                    {
+                        <SpaceItem>
+                            <Popconfirm Title="确定要取消此 Saga 吗？" OkText="确定" CancelText="取消"
+                                        OnConfirm="CancelAsync">
+                                <Button Danger Icon="@IconType.Outline.Stop">
+                                    取消 Saga
+                                </Button>
+                            </Popconfirm>
+                        </SpaceItem>
+                    }
+                }
+                <SpaceItem>
+                    <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @if (_instance == null && !_loading)
+    {
+        <Result Status="404"
+                Title="Saga 实例不存在"
+                SubTitle="@($"未找到 ID 为 '{InstanceId}' 的 Saga 实例")">
+            <Extra>
+                <Button Type="@ButtonType.Primary" OnClick="GoBack">返回列表</Button>
+            </Extra>
+        </Result>
+    }
+    else if (_instance != null)
+    {
+        @* 基本信息 *@
+        <Card Title="基本信息" Style="margin-bottom: 16px;">
+            <Descriptions Bordered Column="@(new Dictionary<string, int> { ["xxl"] = 3, ["xl"] = 3, ["lg"] = 3, ["md"] = 2, ["sm"] = 1, ["xs"] = 1 })">
+                <DescriptionsItem Title="实例 ID">@_instance.InstanceId</DescriptionsItem>
+                <DescriptionsItem Title="Saga ID">@_instance.SagaId</DescriptionsItem>
+                <DescriptionsItem Title="状态">
+                    <Tag Color="@GetStatusColor(_instance.Status)">@GetStatusText(_instance.Status)</Tag>
+                </DescriptionsItem>
+                <DescriptionsItem Title="补偿策略">@_instance.CompensationStrategy</DescriptionsItem>
+                <DescriptionsItem Title="创建时间">@_instance.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</DescriptionsItem>
+                <DescriptionsItem Title="开始时间">@(_instance.StartedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</DescriptionsItem>
+                <DescriptionsItem Title="完成时间">@(_instance.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</DescriptionsItem>
+                <DescriptionsItem Title="当前步骤">@_instance.CurrentStepIndex / @_instance.TotalSteps</DescriptionsItem>
+                @if (!string.IsNullOrEmpty(_instance.ErrorMessage))
+                {
+                    <DescriptionsItem Title="错误信息" Span="3">
+                        <Alert Type="error" Message="@_instance.ErrorMessage" />
+                    </DescriptionsItem>
+                }
+            </Descriptions>
+        </Card>
+
+        @* 步骤时间线 *@
+        <Card Title="执行步骤">
+            @if (_instance.Steps.Count == 0)
+            {
+                <Empty Description="@("暂无步骤信息")" />
+            }
+            else
+            {
+                <Timeline Mode="TimelineMode.Left">
+                    @foreach (var step in _instance.Steps.OrderBy(s => s.Order))
+                    {
+                        <TimelineItem Color="@GetStepTimelineColor(step.Status)">
+                            <ChildContent>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>步骤 @step.Order: @step.Name</strong>
+                                    <Tag Color="@GetStepStatusColor(step.Status)" Style="margin-left: 8px;">
+                                        @GetStepStatusText(step.Status)
+                                    </Tag>
+                                    @if (step.IsCompensable)
+                                    {
+                                        <Tag Color="blue" Style="margin-left: 4px;">可补偿</Tag>
+                                    }
+                                </div>
+                                <div style="color: #999; font-size: 12px;">
+                                    @if (step.StartedAt.HasValue)
+                                    {
+                                        <span>开始: @step.StartedAt.Value.ToString("HH:mm:ss.fff")</span>
+                                    }
+                                    @if (step.CompletedAt.HasValue)
+                                    {
+                                        <span style="margin-left: 16px;">完成: @step.CompletedAt.Value.ToString("HH:mm:ss.fff")</span>
+                                    }
+                                    @if (step.RetryCount > 0)
+                                    {
+                                        <span style="margin-left: 16px; color: #faad14;">重试 @step.RetryCount 次</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(step.ErrorMessage))
+                                {
+                                    <div style="color: #f5222d; font-size: 13px; margin-top: 4px;">
+                                        @step.ErrorMessage
+                                    </div>
+                                }
+                            </ChildContent>
+                        </TimelineItem>
+                    }
+                </Timeline>
+            }
+        </Card>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string InstanceId { get; set; } = string.Empty;
+
+    private SagaInstanceInfo? _instance;
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _instance = await SagaClient.GetInstanceAsync(InstanceId);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CompensateAsync()
+    {
+        try
+        {
+            await SagaClient.CompensateAsync(InstanceId);
+            await MessageService.Success("已触发补偿");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"触发补偿失败: {ex.Message}");
+        }
+    }
+
+    private async Task ResumeAsync()
+    {
+        try
+        {
+            await SagaClient.ResumeAsync(InstanceId);
+            await MessageService.Success("已恢复执行");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"恢复执行失败: {ex.Message}");
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        try
+        {
+            await SagaClient.CancelAsync(InstanceId);
+            await MessageService.Success("已取消 Saga");
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"取消失败: {ex.Message}");
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/saga");
+    }
+
+    private static string GetStatusColor(string status) => status switch
+    {
+        "Executing" => "processing",
+        "Completed" => "success",
+        "Failed" => "error",
+        "Compensating" => "warning",
+        "Compensated" => "orange",
+        "TimedOut" => "volcano",
+        "Cancelled" => "default",
+        "Pending" => "default",
+        _ => "default"
+    };
+
+    private static string GetStatusText(string status) => status switch
+    {
+        "Executing" => "执行中",
+        "Completed" => "已完成",
+        "Failed" => "失败",
+        "Compensating" => "补偿中",
+        "Compensated" => "已补偿",
+        "TimedOut" => "已超时",
+        "Cancelled" => "已取消",
+        "Pending" => "待执行",
+        _ => status
+    };
+
+    private static string GetStepTimelineColor(string status) => status switch
+    {
+        "Completed" or "Compensated" => "green",
+        "Executing" or "Compensating" => "blue",
+        "Failed" or "CompensationFailed" => "red",
+        _ => "gray"
+    };
+
+    private static string GetStepStatusColor(string status) => status switch
+    {
+        "Completed" => "success",
+        "Executing" => "processing",
+        "Failed" => "error",
+        "Compensating" => "warning",
+        "Compensated" => "orange",
+        "CompensationFailed" => "red",
+        "Skipped" => "default",
+        "Pending" => "default",
+        _ => "default"
+    };
+
+    private static string GetStepStatusText(string status) => status switch
+    {
+        "Completed" => "已完成",
+        "Executing" => "执行中",
+        "Failed" => "失败",
+        "Compensating" => "补偿中",
+        "Compensated" => "已补偿",
+        "CompensationFailed" => "补偿失败",
+        "Skipped" => "已跳过",
+        "Pending" => "待执行",
+        _ => status
+    };
+}

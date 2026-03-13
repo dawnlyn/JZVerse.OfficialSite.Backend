@@ -48,11 +48,16 @@
                             <Tag>@context.ValueType</Tag>
                         </PropertyColumn>
                         <PropertyColumn Property="c => c.Version" Title="版本" Width="60" />
-                        <ActionColumn Title="操作" Width="120">
+                        <ActionColumn Title="操作" Width="180">
                             <Space>
                                 <SpaceItem>
                                     <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Edit" OnClick="() => EditConfig(context)">
                                         编辑
+                                    </Button>
+                                </SpaceItem>
+                                <SpaceItem>
+                                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.History" OnClick="() => ShowVersionHistory(context)">
+                                        历史
                                     </Button>
                                 </SpaceItem>
                                 <SpaceItem>
@@ -109,6 +114,38 @@
     }
 </Modal>
 
+@* 版本历史抽屉 *@
+<Drawer Title="@($"版本历史 - {_historyItemKey}")"
+        Width="640"
+        Visible="@_historyDrawerVisible"
+        OnClose="@(() => _historyDrawerVisible = false)">
+    <Table TItem="ConfigVersionInfo"
+           DataSource="@_versionHistory"
+           Loading="@_loadingHistory"
+           Size="TableSize.Small">
+        <PropertyColumn Property="v => v.Version" Title="版本" Width="70" />
+        <PropertyColumn Property="v => v.ChangeType" Title="变更类型" Width="90">
+            <Tag Color="@GetChangeTypeColor(context.ChangeType)">@GetChangeTypeText(context.ChangeType)</Tag>
+        </PropertyColumn>
+        <PropertyColumn Property="v => v.NewValue" Title="新值" Ellipsis>
+            <Tooltip Title="@context.NewValue">
+                <span>@(context.NewValue.Length > 40 ? context.NewValue[..40] + "..." : context.NewValue)</span>
+            </Tooltip>
+        </PropertyColumn>
+        <PropertyColumn Property="v => v.CreatedAt" Title="变更时间" Width="160">
+            @context.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="80">
+            <Popconfirm Title="@($"确定要回滚到版本 {context.Version} 吗？")" OkText="确定" CancelText="取消"
+                        OnConfirm="() => RollbackToVersion(context)">
+                <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Rollback" Size="small">
+                    回滚
+                </Button>
+            </Popconfirm>
+        </ActionColumn>
+    </Table>
+</Drawer>
+
 @code {
     private List<ConfigNamespace> _namespaces = new();
     private List<ConfigItem> _configItems = new();
@@ -119,6 +156,13 @@
     private string? _selectedNamespaceId;
     private ConfigNamespace? _selectedNamespace;
     private ConfigItem? _editingItem;
+
+    // 版本历史
+    private bool _historyDrawerVisible;
+    private bool _loadingHistory;
+    private string _historyItemKey = string.Empty;
+    private string _historyItemId = string.Empty;
+    private List<ConfigVersionInfo> _versionHistory = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -210,4 +254,53 @@
             await MessageService.Error($"删除失败: {ex.Message}");
         }
     }
+
+    private async Task ShowVersionHistory(ConfigItem item)
+    {
+        _historyItemId = item.Id;
+        _historyItemKey = item.Key;
+        _historyDrawerVisible = true;
+        _loadingHistory = true;
+        try
+        {
+            _versionHistory = await ConfigCenterClient.GetConfigVersionHistoryAsync(item.Id);
+        }
+        finally
+        {
+            _loadingHistory = false;
+        }
+    }
+
+    private async Task RollbackToVersion(ConfigVersionInfo version)
+    {
+        try
+        {
+            await ConfigCenterClient.RollbackConfigVersionAsync(_historyItemId, version.Version, $"从 Dashboard 回滚到版本 {version.Version}");
+            await MessageService.Success($"已回滚到版本 {version.Version}");
+            _versionHistory = await ConfigCenterClient.GetConfigVersionHistoryAsync(_historyItemId);
+            await LoadConfigItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"回滚失败: {ex.Message}");
+        }
+    }
+
+    private static string GetChangeTypeColor(string changeType) => changeType switch
+    {
+        "Created" => "green",
+        "Updated" => "blue",
+        "Deleted" => "red",
+        "Rollback" => "orange",
+        _ => "default"
+    };
+
+    private static string GetChangeTypeText(string changeType) => changeType switch
+    {
+        "Created" => "新建",
+        "Updated" => "更新",
+        "Deleted" => "删除",
+        "Rollback" => "回滚",
+        _ => changeType
+    };
 }

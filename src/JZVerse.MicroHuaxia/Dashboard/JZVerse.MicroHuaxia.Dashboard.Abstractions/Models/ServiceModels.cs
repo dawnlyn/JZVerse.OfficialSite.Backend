@@ -26,6 +26,11 @@ public class ServiceInfo
     public int UnhealthyCount { get; set; }
 
     /// <summary>
+    /// 已注销实例数量
+    /// </summary>
+    public int DeregisteredCount { get; set; }
+
+    /// <summary>
     /// 服务状态
     /// </summary>
     public ServiceStatus Status { get; set; }
@@ -80,6 +85,16 @@ public class ServiceInstance
     /// 最后心跳时间
     /// </summary>
     public DateTime LastHeartbeat { get; set; }
+
+    /// <summary>
+    /// 注销时间（null 表示仍在线）
+    /// </summary>
+    public DateTime? DeregisteredAt { get; set; }
+
+    /// <summary>
+    /// 是否已注销
+    /// </summary>
+    public bool IsDeregistered => DeregisteredAt.HasValue;
 }
 
 /// <summary>
@@ -98,9 +113,14 @@ public enum ServiceStatus
     PartialHealthy,
 
     /// <summary>
-    /// 不健康
+    /// 故障（所有活跃实例不健康）
     /// </summary>
-    Unhealthy,
+    Fault,
+
+    /// <summary>
+    /// 已下线（所有实例均已注销）
+    /// </summary>
+    Offline,
 
     /// <summary>
     /// 未知

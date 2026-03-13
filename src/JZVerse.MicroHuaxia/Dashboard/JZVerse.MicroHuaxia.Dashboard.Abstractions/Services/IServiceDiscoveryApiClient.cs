@@ -13,9 +13,19 @@ public interface IServiceDiscoveryApiClient
     Task<List<ServiceInfo>> GetServicesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 获取所有服务列表（可选包含已注销实例）
+    /// </summary>
+    Task<List<ServiceInfo>> GetServicesAsync(bool includeDeregistered, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 获取指定服务的所有实例
     /// </summary>
     Task<List<ServiceInstance>> GetInstancesAsync(string serviceName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 获取指定服务的所有实例（可选包含已注销实例）
+    /// </summary>
+    Task<List<ServiceInstance>> GetInstancesAsync(string serviceName, bool includeDeregistered, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取服务发现统计数据
@@ -36,4 +46,9 @@ public interface IServiceDiscoveryApiClient
     /// 更新实例元数据
     /// </summary>
     Task UpdateMetadataAsync(string instanceId, Dictionary<string, string> metadata, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 永久删除已注销的服务实例
+    /// </summary>
+    Task PurgeInstanceAsync(string instanceId, CancellationToken cancellationToken = default);
 }

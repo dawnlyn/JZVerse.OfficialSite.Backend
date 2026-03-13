@@ -7,6 +7,7 @@ using JZVerse.MicroHuaxia.MessageQueue.Abstractions.Transaction;
 using JZVerse.MicroHuaxia.MessageQueue.Core.Routing;
 using JZVerse.MicroHuaxia.MessageQueue.Core.Subscription;
 using JZVerse.MicroHuaxia.MessageQueue.Protocol.Tcp;
+using JZVerse.MicroHuaxia.MessageQueue.Server.Management;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ namespace JZVerse.MicroHuaxia.MessageQueue.Server;
 /// <summary>
 /// 消息队列 Broker 服务器
 /// </summary>
-public sealed class BrokerServer : IHostedService, IAsyncDisposable
+public sealed class BrokerServer : IHostedService, IAsyncDisposable, IBrokerManagement
 {
     private readonly ILogger<BrokerServer> _logger;
     private readonly BrokerOptions _options;
@@ -546,6 +547,166 @@ public sealed class BrokerServer : IHostedService, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _listener.DisposeAsync();
+    }
+
+    // ==================== IBrokerManagement ====================
+
+    /// <inheritdoc />
+    public async Task<BrokerStats> GetStatsAsync(CancellationToken cancellationToken)
+    {
+        var topics = await GetTopicsAsync(cancellationToken);
+        return new BrokerStats
+        {
+            TotalTopics = topics.Count,
+            TotalMessages = topics.Sum(t => t.TotalMessages),
+            ConnectedClients = _clientSessions.Count,
+            PendingMessages = 0
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<TopicInfo>> GetTopicsAsync(CancellationToken cancellationToken)
+    {
+        var result = new List<TopicInfo>();
+        var allTopics = GetAllKnownTopics();
+
+        foreach (var topic in allTopics)
+        {
+            long totalMessages = 0;
+            int partitionCount = 0;
+
+            for (int p = 0; p < _options.DefaultPartitions; p++)
+            {
+                var latest = await _messageStore.GetLatestOffsetAsync(topic, p, cancellationToken);
+                var earliest = await _messageStore.GetEarliestOffsetAsync(topic, p, cancellationToken);
+                if (latest > 0 || earliest > 0)
+                {
+                    partitionCount++;
+                    totalMessages += latest - earliest;
+                }
+            }
+
+            int subscriberCount = 0;
+            if (_topicSubscriptions.TryGetValue(topic, out var sessions))
+            {
+                lock (sessions)
+                {
+                    subscriberCount = sessions.Count;
+                }
+            }
+
+            if (partitionCount > 0 || subscriberCount > 0)
+            {
+                result.Add(new TopicInfo
+                {
+                    Name = topic,
+                    PartitionCount = partitionCount > 0 ? partitionCount : _options.DefaultPartitions,
+                    TotalMessages = totalMessages,
+                    SubscriberCount = subscriberCount
+                });
+            }
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<TopicDetail?> GetTopicDetailAsync(string topic, CancellationToken cancellationToken)
+    {
+        var partitions = new List<Management.PartitionInfo>();
+        bool hasData = false;
+
+        for (int p = 0; p < _options.DefaultPartitions; p++)
+        {
+            var latest = await _messageStore.GetLatestOffsetAsync(topic, p, cancellationToken);
+            var earliest = await _messageStore.GetEarliestOffsetAsync(topic, p, cancellationToken);
+            if (latest > 0 || earliest > 0) hasData = true;
+
+            partitions.Add(new Management.PartitionInfo
+            {
+                PartitionId = p,
+                LatestOffset = latest,
+                EarliestOffset = earliest,
+                MessageCount = latest - earliest
+            });
+        }
+
+        var subscribers = new List<string>();
+        if (_topicSubscriptions.TryGetValue(topic, out var sessions))
+        {
+            lock (sessions)
+            {
+                foreach (var sessionId in sessions)
+                {
+                    if (_clientSessions.TryGetValue(sessionId, out var cs))
+                    {
+                        subscribers.Add(cs.ClientId);
+                    }
+                }
+            }
+        }
+
+        if (!hasData && subscribers.Count == 0)
+        {
+            return null;
+        }
+
+        return new TopicDetail
+        {
+            Name = topic,
+            Partitions = partitions,
+            Subscribers = subscribers
+        };
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<ConsumerGroupInfo>> GetConsumerGroupsAsync(CancellationToken cancellationToken)
+    {
+        var groups = _clientSessions.Values
+            .Where(s => !string.IsNullOrEmpty(s.ConsumerGroup))
+            .GroupBy(s => s.ConsumerGroup!)
+            .Select(g => new ConsumerGroupInfo
+            {
+                GroupName = g.Key,
+                SubscribedTopics = g.SelectMany(s => s.SubscribedTopics).Distinct().ToList(),
+                TotalLag = 0
+            })
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<ConsumerGroupInfo>>(groups);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<ClientConnectionInfo>> GetConnectionsAsync(CancellationToken cancellationToken)
+    {
+        var connections = _clientSessions.Values
+            .Select(s => new ClientConnectionInfo
+            {
+                ClientId = s.ClientId,
+                SessionId = s.SessionId,
+                ConnectedAt = s.ConnectedAt,
+                Topics = s.SubscribedTopics.ToList()
+            })
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<ClientConnectionInfo>>(connections);
+    }
+
+    private HashSet<string> GetAllKnownTopics()
+    {
+        var topics = new HashSet<string>();
+        foreach (var topic in _topicSubscriptions.Keys)
+        {
+            topics.Add(topic);
+        }
+        foreach (var session in _clientSessions.Values)
+        {
+            foreach (var topic in session.SubscribedTopics)
+            {
+                topics.Add(topic);
+            }
+        }
+        return topics;
     }
 }
 

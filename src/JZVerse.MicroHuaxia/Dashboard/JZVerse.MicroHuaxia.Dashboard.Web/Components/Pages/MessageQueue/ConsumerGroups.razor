@@ -1,0 +1,70 @@
+@page "/mq/consumers"
+@inject IMessageQueueApiClient MqClient
+
+<PageTitle>消费者组</PageTitle>
+
+<div>
+    <PageHeader Title="消费者组" SubTitle="查看消息队列消费者组信息">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    <Table TItem="MqConsumerGroupInfo"
+           DataSource="@_groups"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle">
+        <PropertyColumn Property="c => c.GroupName" Title="消费者组名称">
+            <strong>@context.GroupName</strong>
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.SubscribedTopics" Title="订阅 Topic">
+            @if (context.SubscribedTopics.Count == 0)
+            {
+                <span style="color: #999;">-</span>
+            }
+            else
+            {
+                @foreach (var topic in context.SubscribedTopics)
+                {
+                    <Tag Color="blue" Style="margin-bottom: 4px;">@topic</Tag>
+                }
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.TotalLag" Title="消费延迟" Width="150" Align="ColumnAlign.Right">
+            @if (context.TotalLag > 0)
+            {
+                <span style="color: #faad14; font-weight: 600;">@context.TotalLag</span>
+            }
+            else
+            {
+                <span style="color: #52c41a;">0</span>
+            }
+        </PropertyColumn>
+    </Table>
+</div>
+
+@code {
+    private List<MqConsumerGroupInfo> _groups = [];
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _groups = await MqClient.GetConsumerGroupsAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

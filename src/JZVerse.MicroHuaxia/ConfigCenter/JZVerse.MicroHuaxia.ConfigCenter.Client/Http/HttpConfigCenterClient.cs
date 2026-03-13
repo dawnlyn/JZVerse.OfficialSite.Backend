@@ -145,6 +145,51 @@ public class HttpConfigCenterClient : IConfigCenterClient
         }
     }
 
+    public async Task<ConfigWatchResult?> WatchAsync(
+        string namespaceId,
+        string environmentId,
+        long lastVersion,
+        int timeoutSeconds = 30,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await ExecuteWithFailoverAsync(
+                async baseUrl =>
+                {
+                    var url = BuildUrl(baseUrl, "/api/v1/discovery/watch",
+                        new Dictionary<string, string?>
+                        {
+                            ["namespaceId"] = namespaceId,
+                            ["environmentId"] = environmentId,
+                            ["lastVersion"] = lastVersion.ToString(),
+                            ["timeout"] = timeoutSeconds.ToString(),
+                            ["clientId"] = _options.ClientId,
+                            ["tags"] = string.Join(",", _options.Tags),
+                        });
+
+                    // 长轮询需要更长的 HTTP 超时
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds + 10));
+
+                    var response = await _httpClient.GetAsync(url, cts.Token);
+                    response.EnsureSuccessStatusCode();
+
+                    return await response.Content.ReadFromJsonAsync<ConfigWatchResult>(cts.Token);
+                },
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Watch request failed for namespace {NamespaceId}", namespaceId);
+            return null;
+        }
+    }
+
     private async Task<T> ExecuteWithFailoverAsync<T>(
         Func<string, Task<T>> action,
         CancellationToken cancellationToken)

@@ -1,0 +1,96 @@
+@page "/configs/system"
+@inject ISystemConfigService ConfigService
+@inject IMessageService MessageService
+
+<PageTitle>系统配置</PageTitle>
+
+<div>
+    <PageHeader Title="系统配置" SubTitle="查看各微服务组件运行时配置（只读）">
+        <PageHeaderExtra>
+            <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @if (_loading)
+    {
+        <Spin Tip="正在加载配置..." Size="large" Style="display: block; text-align: center; padding: 60px 0;" />
+    }
+    else
+    {
+        <Tabs DefaultActiveKey="@_configs.FirstOrDefault()?.ServiceName" Animated>
+            @foreach (var config in _configs)
+            {
+                <TabPane Key="@config.ServiceName" Tab="@config.DisplayName">
+                    @if (!config.IsAvailable)
+                    {
+                        <Alert Type="@AlertType.Warning"
+                               Message="@($"无法获取 {config.DisplayName} 配置")"
+                               Description="@(config.ErrorMessage ?? "服务不可达")"
+                               ShowIcon="true"
+                               Style="margin-bottom: 16px;" />
+                    }
+                    else
+                    {
+                        <Table TItem="ServiceConfigEntry"
+                               DataSource="@config.Entries"
+                               Bordered
+                               Size="TableSize.Small"
+                               HidePagination>
+                            <PropertyColumn Property="c => c.Key" Title="配置项" Width="350">
+                                <span style="font-family: monospace; font-size: 13px;">@context.Key</span>
+                            </PropertyColumn>
+                            <PropertyColumn Property="c => c.Value" Title="当前值">
+                                @if (context.ValueType == "Boolean")
+                                {
+                                    <Tag Color="@(context.Value.Equals("True", StringComparison.OrdinalIgnoreCase) ? "green" : "red")">
+                                        @context.Value
+                                    </Tag>
+                                }
+                                else if (context.ValueType == "Number")
+                                {
+                                    <span style="font-family: monospace; color: #1890ff;">@context.Value</span>
+                                }
+                                else
+                                {
+                                    <span style="font-family: monospace;">@context.Value</span>
+                                }
+                            </PropertyColumn>
+                            <PropertyColumn Property="c => c.ValueType" Title="类型" Width="80">
+                                <Tag>@context.ValueType</Tag>
+                            </PropertyColumn>
+                        </Table>
+                    }
+                </TabPane>
+            }
+        </Tabs>
+    }
+</div>
+
+@code {
+    private List<ServiceConfigInfo> _configs = [];
+    private bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _configs = await ConfigService.GetAllConfigsAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"加载配置失败: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

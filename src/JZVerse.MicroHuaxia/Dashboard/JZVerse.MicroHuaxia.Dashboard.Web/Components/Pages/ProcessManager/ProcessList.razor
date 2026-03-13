@@ -1,0 +1,522 @@
+@page "/processes"
+@inject IProcessManagerApiClient ProcessClient
+@inject IMessageService MessageService
+@implements IDisposable
+
+<PageTitle>进程管理</PageTitle>
+
+<div>
+    <PageHeader Title="进程管理" SubTitle="查看和管理所有托管微服务进程">
+        <PageHeaderExtra>
+            <Space>
+                <SpaceItem>
+                    <Switch @bind-Checked="@_autoRefresh"
+                            CheckedChildren="自动刷新"
+                            UnCheckedChildren="手动刷新"
+                            OnChange="OnAutoRefreshChanged" />
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="确定要启动所有服务吗？" OkText="确认" CancelText="取消"
+                                OnConfirm="StartAllAsync">
+                        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.PlayCircle"
+                                Loading="@_startingAll" Disabled="@_stoppingAll">
+                            全部启动
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="确定要停止所有服务吗？这将中断所有正在运行的请求。" OkText="确认停止" CancelText="取消"
+                                OnConfirm="StopAllAsync">
+                        <Button Danger Icon="@IconType.Outline.Stop"
+                                Loading="@_stoppingAll" Disabled="@_startingAll">
+                            全部停止
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+                <SpaceItem>
+                    <Popconfirm Title="确定要一键重启所有服务吗？将先停止所有服务再逐个启动。"
+                                OkText="确认重启" CancelText="取消"
+                                OnConfirm="RestartAllAsync">
+                        <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Sync"
+                                Loading="@_restartingAll" Disabled="@(_startingAll || _stoppingAll)">
+                            一键重启
+                        </Button>
+                    </Popconfirm>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
+                        刷新
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </PageHeaderExtra>
+    </PageHeader>
+
+    @* 概览统计 *@
+    <AntDesign.Row Gutter="16" Style="margin-bottom: 16px;">
+        <AntDesign.Col Span="6">
+            <Card Size="small">
+                <Statistic Title="总进程数" Value="@_processes.Count" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <Card Size="small">
+                <Statistic Title="运行中" Value="@_processes.Count(p => p.State == "Running")"
+                           ValueStyle="color: #3f8600" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <Card Size="small">
+                <Statistic Title="已停止" Value="@_processes.Count(p => p.State == "Stopped")"
+                           ValueStyle="color: #8c8c8c" />
+            </Card>
+        </AntDesign.Col>
+        <AntDesign.Col Span="6">
+            <Card Size="small">
+                <Statistic Title="异常" Value="@_processes.Count(p => p.State == "Failed")"
+                           ValueStyle="color: #cf1322" />
+            </Card>
+        </AntDesign.Col>
+    </AntDesign.Row>
+
+    @* 进程列表表格 *@
+    <Table TItem="ProcessStatusInfo"
+           DataSource="@_processes"
+           Loading="@_loading"
+           Bordered
+           Size="TableSize.Middle"
+           RowClassName="@(r => GetRowClass(r.Data))">
+        <PropertyColumn Property="p => p.DisplayName" Title="服务名称">
+            <strong>@context.DisplayName</strong>
+            <br />
+            <span style="color: #8c8c8c; font-size: 12px;">@context.Id</span>
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.State" Title="状态" Width="120">
+            @switch (context.State)
+            {
+                case "Running":
+                    <Badge Status="success" Text="运行中" />
+                    break;
+                case "Starting":
+                    <Badge Status="processing" Text="启动中" />
+                    break;
+                case "Stopping":
+                    <Badge Status="warning" Text="停止中" />
+                    break;
+                case "Stopped":
+                    <Badge Status="default" Text="已停止" />
+                    break;
+                case "Failed":
+                    <Badge Status="error" Text="异常" />
+                    break;
+                default:
+                    <Badge Status="default" Text="@context.State" />
+                    break;
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Pid" Title="PID" Width="80">
+            @if (context.Pid.HasValue)
+            {
+                <Tag>@context.Pid</Tag>
+            }
+            else
+            {
+                <span style="color: #8c8c8c;">-</span>
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.Uptime" Title="运行时长" Width="140">
+            @if (!string.IsNullOrEmpty(context.Uptime))
+            {
+                <span>@FormatUptime(context.Uptime)</span>
+            }
+            else
+            {
+                <span style="color: #8c8c8c;">-</span>
+            }
+        </PropertyColumn>
+        <PropertyColumn Property="p => p.StartedAt" Title="启动时间" Width="170">
+            @if (context.StartedAt.HasValue)
+            {
+                <Tooltip Title="@context.StartedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")">
+                    @context.StartedAt.Value.ToString("MM-dd HH:mm:ss")
+                </Tooltip>
+            }
+            else
+            {
+                <span style="color: #8c8c8c;">-</span>
+            }
+        </PropertyColumn>
+        <ActionColumn Title="操作" Width="220">
+            <Space>
+                @if (context.State == "Stopped" || context.State == "Failed")
+                {
+                    <SpaceItem>
+                        <Button Type="@ButtonType.Link" Icon="@IconType.Outline.PlayCircle"
+                                Loading="@(_operatingId == context.Id)"
+                                OnClick="() => StartProcessAsync(context.Id)">
+                            启动
+                        </Button>
+                    </SpaceItem>
+                }
+                @if (context.State == "Running")
+                {
+                    <SpaceItem>
+                        <Popconfirm Title="@($"确定要重启 {context.DisplayName} 吗？")"
+                                    OkText="确认" CancelText="取消"
+                                    OnConfirm="() => RestartProcessAsync(context.Id)">
+                            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Sync"
+                                    Loading="@(_operatingId == context.Id)">
+                                重启
+                            </Button>
+                        </Popconfirm>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Popconfirm Title="@($"确定要停止 {context.DisplayName} 吗？")"
+                                    OkText="确认停止" CancelText="取消"
+                                    OnConfirm="() => StopProcessAsync(context.Id)">
+                            <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Stop"
+                                    Loading="@(_operatingId == context.Id)">
+                                停止
+                            </Button>
+                        </Popconfirm>
+                    </SpaceItem>
+                }
+                @if (context.State == "Starting" || context.State == "Stopping")
+                {
+                    <SpaceItem>
+                        <Button Type="@ButtonType.Link" Disabled>
+                            操作中...
+                        </Button>
+                    </SpaceItem>
+                }
+                <SpaceItem>
+                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.InfoCircle"
+                            OnClick="() => ShowDetail(context)">
+                        详情
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </ActionColumn>
+    </Table>
+</div>
+
+@* 进程详情抽屉 *@
+<Drawer Title="@($"进程详情 - {_detailProcess?.DisplayName}")"
+        Width="480"
+        Visible="@_detailVisible"
+        OnClose="@(() => _detailVisible = false)">
+    @if (_detailProcess != null)
+    {
+        <Descriptions Bordered Column="1" Size="small">
+            <DescriptionsItem Title="进程ID">
+                <span style="font-family: monospace;">@_detailProcess.Id</span>
+            </DescriptionsItem>
+            <DescriptionsItem Title="显示名称">@_detailProcess.DisplayName</DescriptionsItem>
+            <DescriptionsItem Title="当前状态">
+                @switch (_detailProcess.State)
+                {
+                    case "Running":
+                        <Badge Status="success" Text="运行中" />
+                        break;
+                    case "Starting":
+                        <Badge Status="processing" Text="启动中" />
+                        break;
+                    case "Stopping":
+                        <Badge Status="warning" Text="停止中" />
+                        break;
+                    case "Stopped":
+                        <Badge Status="default" Text="已停止" />
+                        break;
+                    case "Failed":
+                        <Badge Status="error" Text="异常" />
+                        break;
+                    default:
+                        <Badge Status="default" Text="@_detailProcess.State" />
+                        break;
+                }
+            </DescriptionsItem>
+            <DescriptionsItem Title="系统 PID">
+                @(_detailProcess.Pid?.ToString() ?? "-")
+            </DescriptionsItem>
+            <DescriptionsItem Title="启动时间">
+                @(_detailProcess.StartedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")
+            </DescriptionsItem>
+            <DescriptionsItem Title="停止时间">
+                @(_detailProcess.StoppedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")
+            </DescriptionsItem>
+            <DescriptionsItem Title="运行时长">
+                @(string.IsNullOrEmpty(_detailProcess.Uptime) ? "-" : FormatUptime(_detailProcess.Uptime))
+            </DescriptionsItem>
+            @if (!string.IsNullOrEmpty(_detailProcess.LastError))
+            {
+                <DescriptionsItem Title="最近错误">
+                    <Alert Type="@AlertType.Error" Message="@_detailProcess.LastError" />
+                </DescriptionsItem>
+            }
+        </Descriptions>
+    }
+</Drawer>
+
+<style>
+    .process-failed-row {
+        background-color: #fff2f0;
+    }
+    .process-stopped-row {
+        opacity: 0.7;
+    }
+</style>
+
+@code {
+    private List<ProcessStatusInfo> _processes = [];
+    private bool _loading;
+    private bool _autoRefresh = true;
+    private string? _operatingId;
+    private bool _startingAll;
+    private bool _stoppingAll;
+    private bool _restartingAll;
+
+    // 详情抽屉
+    private bool _detailVisible;
+    private ProcessStatusInfo? _detailProcess;
+
+    // 自动刷新
+    private Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+        if (_autoRefresh)
+        {
+            StartAutoRefresh();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            _processes = await ProcessClient.GetAllProcessesAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"加载进程列表失败: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartProcessAsync(string processId)
+    {
+        _operatingId = processId;
+        try
+        {
+            var result = await ProcessClient.StartProcessAsync(processId);
+            if (result != null)
+            {
+                await MessageService.Success($"{result.DisplayName} 启动成功");
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageService.Error("启动失败，请检查 ProcessManager 日志");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"启动失败: {ex.Message}");
+        }
+        finally
+        {
+            _operatingId = null;
+        }
+    }
+
+    private async Task StopProcessAsync(string processId)
+    {
+        _operatingId = processId;
+        try
+        {
+            var result = await ProcessClient.StopProcessAsync(processId);
+            if (result != null)
+            {
+                await MessageService.Success($"{result.DisplayName} 已停止");
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageService.Error("停止失败，请检查 ProcessManager 日志");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"停止失败: {ex.Message}");
+        }
+        finally
+        {
+            _operatingId = null;
+        }
+    }
+
+    private async Task RestartProcessAsync(string processId)
+    {
+        _operatingId = processId;
+        try
+        {
+            var result = await ProcessClient.RestartProcessAsync(processId);
+            if (result != null)
+            {
+                await MessageService.Success($"{result.DisplayName} 重启成功");
+                await LoadDataAsync();
+            }
+            else
+            {
+                await MessageService.Error("重启失败，请检查 ProcessManager 日志");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"重启失败: {ex.Message}");
+        }
+        finally
+        {
+            _operatingId = null;
+        }
+    }
+
+    private async Task StartAllAsync()
+    {
+        _startingAll = true;
+        try
+        {
+            await ProcessClient.StartAllAsync();
+            await MessageService.Success("已发送全部启动指令");
+            await Task.Delay(1000);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"全部启动失败: {ex.Message}");
+        }
+        finally
+        {
+            _startingAll = false;
+        }
+    }
+
+    private async Task StopAllAsync()
+    {
+        _stoppingAll = true;
+        try
+        {
+            await ProcessClient.StopAllAsync();
+            await MessageService.Success("已发送全部停止指令");
+            await Task.Delay(1000);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"全部停止失败: {ex.Message}");
+        }
+        finally
+        {
+            _stoppingAll = false;
+        }
+    }
+
+    private async Task RestartAllAsync()
+    {
+        _restartingAll = true;
+        try
+        {
+            await ProcessClient.RestartAllAsync();
+            await MessageService.Success("所有服务已重启完成");
+            await Task.Delay(1000);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            await MessageService.Error($"一键重启失败: {ex.Message}");
+        }
+        finally
+        {
+            _restartingAll = false;
+        }
+    }
+
+    private void ShowDetail(ProcessStatusInfo process)
+    {
+        _detailProcess = process;
+        _detailVisible = true;
+    }
+
+    private void OnAutoRefreshChanged(bool value)
+    {
+        _autoRefresh = value;
+        if (_autoRefresh)
+        {
+            StartAutoRefresh();
+        }
+        else
+        {
+            StopAutoRefresh();
+        }
+    }
+
+    private void StartAutoRefresh()
+    {
+        StopAutoRefresh();
+        _refreshTimer = new Timer(async _ =>
+        {
+            try
+            {
+                await InvokeAsync(async () =>
+                {
+                    _processes = await ProcessClient.GetAllProcessesAsync();
+                    StateHasChanged();
+                });
+            }
+            catch
+            {
+                // 静默忽略自动刷新错误
+            }
+        }, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private void StopAutoRefresh()
+    {
+        _refreshTimer?.Dispose();
+        _refreshTimer = null;
+    }
+
+    private static string GetRowClass(ProcessStatusInfo process) => process.State switch
+    {
+        "Failed" => "process-failed-row",
+        "Stopped" => "process-stopped-row",
+        _ => ""
+    };
+
+    private static string FormatUptime(string uptime)
+    {
+        if (TimeSpan.TryParse(uptime, out var ts))
+        {
+            if (ts.TotalDays >= 1)
+                return $"{(int)ts.TotalDays}天 {ts.Hours}时 {ts.Minutes}分";
+            if (ts.TotalHours >= 1)
+                return $"{(int)ts.TotalHours}时 {ts.Minutes}分";
+            if (ts.TotalMinutes >= 1)
+                return $"{(int)ts.TotalMinutes}分 {ts.Seconds}秒";
+            return $"{ts.Seconds}秒";
+        }
+        return uptime;
+    }
+
+    public void Dispose()
+    {
+        StopAutoRefresh();
+    }
+}

@@ -42,4 +42,36 @@ public interface IConfigCenterClient
     /// 强制刷新配置
     /// </summary>
     Task RefreshAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 长轮询等待配置变更
+    /// </summary>
+    /// <returns>如果有变更则返回新版本号，无变更返回 null</returns>
+    Task<ConfigWatchResult?> WatchAsync(
+        string namespaceId,
+        string environmentId,
+        long lastVersion,
+        int timeoutSeconds = 30,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// 配置监听结果
+/// </summary>
+public class ConfigWatchResult
+{
+    /// <summary>
+    /// 是否有变更
+    /// </summary>
+    public bool HasChanged { get; set; }
+
+    /// <summary>
+    /// 最新版本号
+    /// </summary>
+    public long Version { get; set; }
+
+    /// <summary>
+    /// 变更后的配置（仅 HasChanged=true 时有值）
+    /// </summary>
+    public Dictionary<string, string>? Config { get; set; }
 }
