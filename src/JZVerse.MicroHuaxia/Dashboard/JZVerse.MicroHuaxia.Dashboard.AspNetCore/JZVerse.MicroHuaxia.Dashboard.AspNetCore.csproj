@@ -17,6 +17,10 @@
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Core\JZVerse.MicroHuaxia.Dashboard.Core.csproj" />
     <ProjectReference Include="..\JZVerse.MicroHuaxia.Dashboard.Web\JZVerse.MicroHuaxia.Dashboard.Web.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Abstractions\JZVerse.MicroHuaxia.Security.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Core\JZVerse.MicroHuaxia.Security.Core.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.AspNetCore\JZVerse.MicroHuaxia.Security.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Client\JZVerse.MicroHuaxia.Security.Client.csproj" />
   </ItemGroup>
 
 </Project>

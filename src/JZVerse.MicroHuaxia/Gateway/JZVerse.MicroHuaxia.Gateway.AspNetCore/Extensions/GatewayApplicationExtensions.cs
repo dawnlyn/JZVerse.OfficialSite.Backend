@@ -95,6 +95,15 @@ public static class GatewayApplicationExtensions
         return app;
     }
 
+    /// <summary>
+    /// 使用网关安全中间件（集成 Security 模块）
+    /// </summary>
+    public static IApplicationBuilder UseGatewaySecurity(this IApplicationBuilder app)
+    {
+        app.UseMiddleware<GatewaySecurityMiddleware>();
+        return app;
+    }
+
     private static void InitializeAuthenticationHandlers(IApplicationBuilder app)
     {
         var pipeline = app.ApplicationServices.GetRequiredService<IAuthenticationPipeline>();

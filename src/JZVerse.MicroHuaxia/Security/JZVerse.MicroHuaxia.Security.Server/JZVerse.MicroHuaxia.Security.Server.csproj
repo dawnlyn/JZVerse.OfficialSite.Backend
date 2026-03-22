@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <AssemblyName>JZVerse.MicroHuaxia.Security.Server</AssemblyName>
+    <RootNamespace>JZVerse.MicroHuaxia.Security.Server</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../JZVerse.MicroHuaxia.Security.AspNetCore/JZVerse.MicroHuaxia.Security.AspNetCore.csproj" />
+    <ProjectReference Include="../../ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore/JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+    <ProjectReference Include="../../ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.AspNetCore/JZVerse.MicroHuaxia.ConfigCenter.AspNetCore.csproj" />
+    <ProjectReference Include="../../Observability/JZVerse.MicroHuaxia.Observability.AspNetCore/JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

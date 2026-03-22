@@ -6,6 +6,8 @@ using JZVerse.Business.Infrastructure.Encryption;
 using JZVerse.Business.Infrastructure.Filters;
 using JZVerse.Business.Infrastructure.Middleware;
 using JZVerse.Business.Infrastructure.Validation;
+using JZVerse.MicroHuaxia.Security;
+using JZVerse.MicroHuaxia.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +30,12 @@ public static class BusinessInfrastructureExtensions
         services.Configure<Sm2Options>(configuration.GetSection(Sm2Options.SectionName));
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
-        // 加密服务
+        // 注册 Security 核心服务
+        services.AddSingleton<ISm2Provider, Sm2Provider>();
+        services.AddSingleton<ISm3Provider, Sm3Provider>();
+        services.AddSingleton<ISm4Provider, Sm4Provider>();
+
+        // 加密服务（适配器模式，使用 Security 模块实现）
         services.AddSingleton<ISm2Encryptor, Sm2Encryptor>();
 
         // 认证服务
@@ -40,6 +47,13 @@ public static class BusinessInfrastructureExtensions
 
         // HTTP 上下文
         services.AddHttpContextAccessor();
+
+        // TODO: 注册 Security Client（待 Security.Client 扩展方法完善后启用）
+        // var securityServerAddress = configuration["Security:ServerAddress"];
+        // if (!string.IsNullOrEmpty(securityServerAddress))
+        // {
+        //     services.AddSecurityClient(...);
+        // }
 
         return services;
     }

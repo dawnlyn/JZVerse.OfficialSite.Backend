@@ -13,6 +13,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.ServiceDiscovery.Client\JZVerse.MicroHuaxia.ServiceDiscovery.Client.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Abstractions\JZVerse.MicroHuaxia.Security.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Core\JZVerse.MicroHuaxia.Security.Core.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.AspNetCore\JZVerse.MicroHuaxia.Security.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

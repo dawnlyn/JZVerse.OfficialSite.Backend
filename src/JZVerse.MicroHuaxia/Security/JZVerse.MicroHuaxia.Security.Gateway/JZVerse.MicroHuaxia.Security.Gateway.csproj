@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <AssemblyName>JZVerse.MicroHuaxia.Security.Gateway</AssemblyName>
+    <RootNamespace>JZVerse.MicroHuaxia.Security</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../JZVerse.MicroHuaxia.Security.Core/JZVerse.MicroHuaxia.Security.Core.csproj" />
+    <ProjectReference Include="../../Gateway/JZVerse.MicroHuaxia.Gateway.Abstractions/JZVerse.MicroHuaxia.Gateway.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

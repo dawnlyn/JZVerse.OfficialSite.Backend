@@ -16,6 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\JZVerse.MicroHuaxia.Saga.Abstractions\JZVerse.MicroHuaxia.Saga.Abstractions.csproj" />
     <ProjectReference Include="..\JZVerse.MicroHuaxia.Saga.Core\JZVerse.MicroHuaxia.Saga.Core.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Abstractions\JZVerse.MicroHuaxia.Security.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Security\JZVerse.MicroHuaxia.Security.Client\JZVerse.MicroHuaxia.Security.Client.csproj" />
   </ItemGroup>
 
 </Project>

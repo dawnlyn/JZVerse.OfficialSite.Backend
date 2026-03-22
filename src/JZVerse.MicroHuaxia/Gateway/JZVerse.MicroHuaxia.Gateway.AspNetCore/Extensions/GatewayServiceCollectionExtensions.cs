@@ -13,6 +13,8 @@ using JZVerse.MicroHuaxia.Gateway.Core.RateLimiting.Storage;
 using JZVerse.MicroHuaxia.Gateway.Core.Repositories;
 using JZVerse.MicroHuaxia.Gateway.Core.Routing;
 using JZVerse.MicroHuaxia.Gateway.Core.TrafficControl;
+using JZVerse.MicroHuaxia.Security;
+using JZVerse.MicroHuaxia.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -52,6 +54,11 @@ public static class GatewayServiceCollectionExtensions
 
     private static GatewayBuilder AddGatewayCore(this IServiceCollection services)
     {
+        // 注册 Security 核心服务（国密算法）
+        services.AddSingleton<ISm2Provider, Sm2Provider>();
+        services.AddSingleton<ISm3Provider, Sm3Provider>();
+        services.AddSingleton<ISm4Provider, Sm4Provider>();
+
         // 路由
         services.AddSingleton<IRouteRepository, InMemoryRouteRepository>();
         services.AddSingleton<IRouteMatchingEngine, RouteMatchingEngine>();
