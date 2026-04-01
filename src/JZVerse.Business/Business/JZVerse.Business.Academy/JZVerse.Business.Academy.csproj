@@ -13,8 +13,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\JZVerse.Business.Infrastructure\JZVerse.Business.Infrastructure.csproj" />
-        <ProjectReference Include="..\..\..\JZVerse.DataAccess\JZVerse.DataAccess.PostgreSql\JZVerse.DataAccess.PostgreSql.csproj" />
-        <ProjectReference Include="..\..\..\JZVerse.DataAccess\JZVerse.DataAccess.Caching.Dapper\JZVerse.DataAccess.Caching.Dapper.csproj" />
+        <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\DataAccess\JZVerse.MicroHuaxia.DataAccess.PostgreSql\JZVerse.MicroHuaxia.DataAccess.PostgreSql.csproj" />
+        <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\DataAccess\JZVerse.MicroHuaxia.DataAccess.Caching.Dapper\JZVerse.MicroHuaxia.DataAccess.Caching.Dapper.csproj" />
     </ItemGroup>
 
 </Project>

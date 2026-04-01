@@ -3,8 +3,8 @@ using Dapper;
 using JZVerse.Business.Blog.Arguments;
 using JZVerse.Business.Blog.Database;
 using JZVerse.Business.Blog.Services;
-using JZVerse.DataAccess.Abstractions;
-using JZVerse.DataAccess.Abstractions.Models;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions.Models;
 using Npgsql;
 
 namespace JZVerse.Business.Tests.Integration;

@@ -2,7 +2,7 @@ using JZVerse.Business.Abstractions.Models;
 using JZVerse.Business.Academy.Arguments;
 using JZVerse.Business.Academy.Database;
 using JZVerse.Business.Academy.Services;
-using JZVerse.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
 
 namespace JZVerse.Business.Tests.Unit.Academy;
 

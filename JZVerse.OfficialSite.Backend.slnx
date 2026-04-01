@@ -21,17 +21,17 @@
         <Project Path="tests/ServiceDiscovery/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration/JZVerse.MicroHuaxia.ServiceDiscovery.Tests.Integration.csproj" />
     </Folder>
     <Folder Name="/src/" />
-    <Folder Name="/src/JZVerse.DataAccess/">
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Abstractions/JZVerse.DataAccess.Abstractions.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.AspNetCore/JZVerse.DataAccess.AspNetCore.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.AspNetCore/JZVerse.DataAccess.Caching.AspNetCore.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.Dapper/JZVerse.DataAccess.Caching.Dapper.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Caching.EFCore/JZVerse.DataAccess.Caching.EFCore.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Core/JZVerse.DataAccess.Core.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.MongoDB/JZVerse.DataAccess.MongoDB.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.MySql/JZVerse.DataAccess.MySql.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.PostgreSql/JZVerse.DataAccess.PostgreSql.csproj" />
-        <Project Path="src/JZVerse.DataAccess/JZVerse.DataAccess.Sqlite/JZVerse.DataAccess.Sqlite.csproj" />
+    <Folder Name="/src/JZVerse.MicroHuaxia/DataAccess/">
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Abstractions/JZVerse.MicroHuaxia.DataAccess.Abstractions.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.AspNetCore/JZVerse.MicroHuaxia.DataAccess.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Caching.AspNetCore/JZVerse.MicroHuaxia.DataAccess.Caching.AspNetCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Caching.Dapper/JZVerse.MicroHuaxia.DataAccess.Caching.Dapper.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Caching.EFCore/JZVerse.MicroHuaxia.DataAccess.Caching.EFCore.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Core/JZVerse.MicroHuaxia.DataAccess.Core.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.MongoDB/JZVerse.MicroHuaxia.DataAccess.MongoDB.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.MySql/JZVerse.MicroHuaxia.DataAccess.MySql.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.PostgreSql/JZVerse.MicroHuaxia.DataAccess.PostgreSql.csproj" />
+        <Project Path="src/JZVerse.MicroHuaxia/DataAccess/JZVerse.MicroHuaxia.DataAccess.Sqlite/JZVerse.MicroHuaxia.DataAccess.Sqlite.csproj" />
     </Folder>
     <Folder Name="/src/JZVerse.MicroHuaxia/ConfigCenter/">
         <Project Path="src/JZVerse.MicroHuaxia/ConfigCenter/JZVerse.MicroHuaxia.ConfigCenter.Abstractions/JZVerse.MicroHuaxia.ConfigCenter.Abstractions.csproj" />
@@ -111,7 +111,6 @@
     <Folder Name="/src/JZVerse.Business/">
         <Project Path="src/JZVerse.Business/JZVerse.Business.Abstractions/JZVerse.Business.Abstractions.csproj" />
         <Project Path="src/JZVerse.Business/JZVerse.Business.Infrastructure/JZVerse.Business.Infrastructure.csproj" />
-        <Project Path="src/JZVerse.Business/JZVerse.Business.Server/JZVerse.Business.Server.csproj" />
         <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.Security/JZVerse.Business.Central.Security.csproj" />
         <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.User/JZVerse.Business.Central.User.csproj" />
         <Project Path="src/JZVerse.Business/Central/JZVerse.Business.Central.File/JZVerse.Business.Central.File.csproj" />

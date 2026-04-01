@@ -3,7 +3,7 @@ using JZVerse.Business.Central.File.Arguments;
 using JZVerse.Business.Central.File.Database;
 using JZVerse.Business.Central.File.Results;
 using JZVerse.Business.Central.File.Services;
-using JZVerse.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace JZVerse.Business.Tests.Unit.Central;

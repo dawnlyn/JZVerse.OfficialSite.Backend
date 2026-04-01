@@ -2,7 +2,7 @@ using JZVerse.Business.Abstractions.Models;
 using JZVerse.Business.Blog.Arguments;
 using JZVerse.Business.Blog.Database;
 using JZVerse.Business.Blog.Services;
-using JZVerse.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
 
 namespace JZVerse.Business.Tests.Unit.Blog;
 

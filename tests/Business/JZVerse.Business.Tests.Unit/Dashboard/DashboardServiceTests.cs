@@ -1,5 +1,5 @@
 using JZVerse.Business.Dashboard.Services;
-using JZVerse.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
 
 namespace JZVerse.Business.Tests.Unit.Dashboard;
 

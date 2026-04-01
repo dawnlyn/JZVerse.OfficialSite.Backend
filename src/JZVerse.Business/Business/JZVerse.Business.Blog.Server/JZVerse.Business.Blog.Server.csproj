@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.Business.Blog.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Swagger/OpenAPI -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ============================================ -->
+    <!-- MicroHuaxia 微服务框架 -->
+    <!-- ============================================ -->
+    
+    <!-- 服务注册发现客户端 -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\ServiceDiscovery\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore\JZVerse.MicroHuaxia.ServiceDiscovery.AspNetCore.csproj" />
+    
+    <!-- 配置中心客户端 -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\ConfigCenter\JZVerse.MicroHuaxia.ConfigCenter.AspNetCore\JZVerse.MicroHuaxia.ConfigCenter.AspNetCore.csproj" />
+    
+    <!-- 服务通信（HTTP/gRPC/JSON-RPC + 弹性策略） -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\ServiceCommunication\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore\JZVerse.MicroHuaxia.ServiceCommunication.AspNetCore.csproj" />
+    
+    <!-- 消息队列客户端 -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\MessageQueue\JZVerse.MicroHuaxia.MessageQueue.Client\JZVerse.MicroHuaxia.MessageQueue.Client.csproj" />
+    
+    <!-- 分布式事务 Saga -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\Saga\JZVerse.MicroHuaxia.Saga.AspNetCore\JZVerse.MicroHuaxia.Saga.AspNetCore.csproj" />
+    
+    <!-- 可观测性 (统一 Observability) -->
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\Observability\JZVerse.MicroHuaxia.Observability.AspNetCore\JZVerse.MicroHuaxia.Observability.AspNetCore.csproj" />
+    
+    <!-- ============================================ -->
+    <!-- 业务基础设施 -->
+    <!-- ============================================ -->
+    
+    <ProjectReference Include="..\..\JZVerse.Business.Infrastructure\JZVerse.Business.Infrastructure.csproj" />
+    
+    <!-- ============================================ -->
+    <!-- Blog 业务模块 -->
+    <!-- ============================================ -->
+    
+    <ProjectReference Include="..\JZVerse.Business.Blog\JZVerse.Business.Blog.csproj" />
+    
+    <!-- ============================================ -->
+    <!-- 数据访问 -->
+    <!-- ============================================ -->
+    
+    <ProjectReference Include="..\..\..\JZVerse.MicroHuaxia\DataAccess\JZVerse.DataAccess.PostgreSql\JZVerse.DataAccess.PostgreSql.csproj" />
+  </ItemGroup>
+</Project>

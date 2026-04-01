@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>JZVerse.MicroHuaxia.DataAccess.Caching.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.DataAccess.Abstractions\JZVerse.MicroHuaxia.DataAccess.Abstractions.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.DataAccess.Core\JZVerse.MicroHuaxia.DataAccess.Core.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.DataAccess.Caching.Dapper\JZVerse.MicroHuaxia.DataAccess.Caching.Dapper.csproj" />
+    <ProjectReference Include="..\JZVerse.MicroHuaxia.DataAccess.Caching.EFCore\JZVerse.MicroHuaxia.DataAccess.Caching.EFCore.csproj" />
+  </ItemGroup>
+
+</Project>

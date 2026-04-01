@@ -1,6 +1,6 @@
 using JZVerse.Business.Dashboard.Database;
 using JZVerse.Business.Dashboard.Results;
-using JZVerse.DataAccess.Abstractions;
+using JZVerse.MicroHuaxia.DataAccess.Abstractions;
 
 namespace JZVerse.Business.Dashboard.Services;
 

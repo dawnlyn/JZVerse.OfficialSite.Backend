@@ -1,0 +1,160 @@
+{
+  "DataAccess": {
+    "DefaultConnectionName": "default",
+    "Clusters": {
+      "default": {
+        "Name": "default",
+        "DatabaseType": "PostgreSql",
+        "Nodes": [
+          {
+            "Name": "master",
+            "NodeIndex": 0,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true
+          }
+        ],
+        "DefaultShardCount": 1
+      },
+      "orderCluster": {
+        "Name": "orderCluster",
+        "DatabaseType": "PostgreSql",
+        "Nodes": [
+          {
+            "Name": "order-db-0",
+            "NodeIndex": 0,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_orders_0;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true
+          },
+          {
+            "Name": "order-db-1",
+            "NodeIndex": 1,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_orders_1;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true
+          },
+          {
+            "Name": "order-db-2",
+            "NodeIndex": 2,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_orders_2;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true
+          },
+          {
+            "Name": "order-db-3",
+            "NodeIndex": 3,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_orders_3;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true
+          }
+        ],
+        "DefaultShardCount": 4,
+        "ReadWriteSplitting": {
+          "Enabled": false,
+          "SlaveNodeIndexes": [],
+          "LoadBalanceStrategy": "Random"
+        }
+      },
+      "logCluster": {
+        "Name": "logCluster",
+        "DatabaseType": "MySql",
+        "Nodes": [
+          {
+            "Name": "log-master",
+            "NodeIndex": 0,
+            "ConnectionString": "Server=localhost;Port=3306;Database=jzverse_logs;Uid=root;Pwd=your_password;",
+            "Weight": 1,
+            "IsMaster": true
+          },
+          {
+            "Name": "log-slave-1",
+            "NodeIndex": 1,
+            "ConnectionString": "Server=localhost;Port=3306;Database=jzverse_logs;Uid=root;Pwd=your_password;",
+            "Weight": 1,
+            "IsMaster": false
+          },
+          {
+            "Name": "log-slave-2",
+            "NodeIndex": 2,
+            "ConnectionString": "Server=localhost;Port=3306;Database=jzverse_logs;Uid=root;Pwd=your_password;",
+            "Weight": 1,
+            "IsMaster": false
+          }
+        ],
+        "ReadWriteSplitting": {
+          "Enabled": true,
+          "SlaveNodeIndexes": [1, 2],
+          "LoadBalanceStrategy": "RoundRobin"
+        }
+      },
+      "userCluster": {
+        "Name": "userCluster",
+        "DatabaseType": "PostgreSql",
+        "Nodes": [
+          {
+            "Name": "user-master",
+            "NodeIndex": 0,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_users;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true,
+            "ShardRange": {
+              "StartValue": 0,
+              "EndValue": 1000000
+            }
+          },
+          {
+            "Name": "user-master-2",
+            "NodeIndex": 1,
+            "ConnectionString": "Host=localhost;Port=5432;Database=jzverse_users_2;Username=postgres;Password=your_password",
+            "Weight": 1,
+            "IsMaster": true,
+            "ShardRange": {
+              "StartValue": 1000000,
+              "EndValue": 2000000
+            }
+          }
+        ],
+        "DefaultShardCount": 2
+      }
+    },
+    "ShardingRules": {
+      "orders": {
+        "Name": "orders",
+        "EntityType": "JZVerse.Business.Order.Models.Order",
+        "Strategy": "Hash",
+        "ShardingKey": "UserId",
+        "ShardCount": 16,
+        "TableNameFormat": "orders_{0:000}",
+        "ClusterName": "orderCluster"
+      },
+      "orderItems": {
+        "Name": "orderItems",
+        "Strategy": "Hash",
+        "ShardingKey": "OrderId",
+        "ShardCount": 16,
+        "TableNameFormat": "order_items_{0:000}",
+        "ClusterName": "orderCluster"
+      },
+      "logs": {
+        "Name": "logs",
+        "Strategy": "Time",
+        "ShardingKey": "CreatedAt",
+        "TableNameFormat": "logs_{0:yyyyMM}",
+        "ClusterName": "logCluster",
+        "TimeSharding": {
+          "Granularity": "Month",
+          "DateFormat": "yyyyMM",
+          "RetentionCount": 12
+        }
+      },
+      "users": {
+        "Name": "users",
+        "Strategy": "Range",
+        "ShardingKey": "Id",
+        "ShardCount": 2,
+        "ClusterName": "userCluster"
+      }
+    }
+  }
+}
