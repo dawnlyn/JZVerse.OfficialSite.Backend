@@ -1,116 +1,374 @@
 @inject NavigationManager NavigationManager
 
-<Menu Theme="MenuTheme.Dark"
+<Menu Theme="MenuTheme.Light"
       Mode="MenuMode.Inline"
       InlineCollapsed="@Collapsed"
-      DefaultSelectedKeys="@(new[] { _selectedKey })"
-      OnMenuItemClicked="OnMenuItemClicked">
-    <MenuItem Key="home" RouterLink="/">
-        <Icon Type="@IconType.Outline.Home" Theme="outline" />
-        <span>首页</span>
+      SelectedKeys="@(_selectedKeys)"
+      OpenKeys="@(_openKeys)"
+      OnMenuItemClicked="OnMenuItemClicked"
+      OnOpenChange="OnOpenChange"
+      Class="microhuaxia-menu">
+    
+    @* 首页 *@
+    <MenuItem Key="home" RouterLink="/" Class="menu-item-home">
+        <Icon Type="@IconType.Outline.Home" />
+        <span>系统总览</span>
     </MenuItem>
-    <SubMenu Key="service-discovery">
+
+    <MenuDivider />
+
+    @* 服务治理 *@
+    <SubMenu Key="service-governance" Class="submenu-group">
         <TitleTemplate>
-            <Icon Type="@IconType.Outline.Cluster" Theme="outline" />
-            <span>服务发现</span>
+            <Icon Type="@IconType.Outline.Cluster" />
+            <span>服务治理</span>
         </TitleTemplate>
         <ChildContent>
             <MenuItem Key="services" RouterLink="/services">
+                <Icon Type="@IconType.Outline.Appstore" />
                 <span>服务列表</span>
+            </MenuItem>
+            <MenuItem Key="traffic-heatmap">
+                <Icon Type="@IconType.Outline.HeatMap" />
+                <span>流量热力图</span>
+            </MenuItem>
+            <MenuItem Key="capacity">
+                <Icon Type="@IconType.Outline.Dashboard" />
+                <span>容量监控</span>
             </MenuItem>
         </ChildContent>
     </SubMenu>
-    <SubMenu Key="config-center">
+
+    @* 配置中心 *@
+    <SubMenu Key="config-center" Class="submenu-group">
         <TitleTemplate>
-            <Icon Type="@IconType.Outline.Setting" Theme="outline" />
+            <Icon Type="@IconType.Outline.Setting" />
             <span>配置中心</span>
         </TitleTemplate>
         <ChildContent>
             <MenuItem Key="configs" RouterLink="/configs">
+                <Icon Type="@IconType.Outline.FileText" />
                 <span>配置管理</span>
             </MenuItem>
-            <MenuItem Key="system-config" RouterLink="/configs/system">
-                <span>系统配置</span>
-            </MenuItem>
             <MenuItem Key="gray-release" RouterLink="/configs/gray-release">
+                <Icon Type="@IconType.Outline.Percentage" />
                 <span>灰度发布</span>
             </MenuItem>
             <MenuItem Key="config-migration" RouterLink="/configs/migration">
+                <Icon Type="@IconType.Outline.Swap" />
                 <span>配置迁移</span>
+            </MenuItem>
+            <MenuItem Key="system-config" RouterLink="/configs/system">
+                <Icon Type="@IconType.Outline.Tool" />
+                <span>系统配置</span>
             </MenuItem>
         </ChildContent>
     </SubMenu>
-    <SubMenu Key="gateway">
+
+    @* 流量治理 *@
+    <SubMenu Key="traffic-governance" Class="submenu-group">
         <TitleTemplate>
-            <Icon Type="@IconType.Outline.Api" Theme="outline" />
+            <Icon Type="@IconType.Outline.NodeIndex" />
+            <span>流量治理</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="canary">
+                <Icon Type="@IconType.Outline.Experiment" />
+                <span>金丝雀发布</span>
+            </MenuItem>
+            <MenuItem Key="blue-green">
+                <Icon Type="@IconType.Outline.Switcher" />
+                <span>蓝绿部署</span>
+            </MenuItem>
+            <MenuItem Key="circuit-breaker">
+                <Icon Type="@IconType.Outline.PauseCircle" />
+                <span>熔断限流</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+
+    @* 网关管理 *@
+    <SubMenu Key="gateway" Class="submenu-group">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Api" />
             <span>网关管理</span>
         </TitleTemplate>
         <ChildContent>
             <MenuItem Key="routes" RouterLink="/gateway/routes">
+                <Icon Type="@IconType.Outline.Gateway" />
                 <span>路由管理</span>
             </MenuItem>
             <MenuItem Key="audit" RouterLink="/gateway/audit">
+                <Icon Type="@IconType.Outline.FileSearch" />
                 <span>审计日志</span>
             </MenuItem>
         </ChildContent>
     </SubMenu>
-    <SubMenu Key="message-queue">
+
+    @* 消息队列 *@
+    <SubMenu Key="message-queue" Class="submenu-group">
         <TitleTemplate>
-            <Icon Type="@IconType.Outline.Message" Theme="outline" />
+            <Icon Type="@IconType.Outline.Message" />
             <span>消息队列</span>
         </TitleTemplate>
         <ChildContent>
             <MenuItem Key="topics" RouterLink="/mq/topics">
+                <Icon Type="@IconType.Outline.Bars" />
                 <span>Topic 管理</span>
             </MenuItem>
             <MenuItem Key="consumers" RouterLink="/mq/consumers">
+                <Icon Type="@IconType.Outline.Team" />
                 <span>消费者组</span>
             </MenuItem>
             <MenuItem Key="connections" RouterLink="/mq/connections">
+                <Icon Type="@IconType.Outline.Link" />
                 <span>客户端连接</span>
             </MenuItem>
         </ChildContent>
     </SubMenu>
-    <MenuItem Key="saga" RouterLink="/saga">
-        <Icon Type="@IconType.Outline.NodeIndex" Theme="outline" />
-        <span>Saga 监控</span>
+
+    @* 可观测性 *@
+    <SubMenu Key="observability" Class="submenu-group">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Eye" />
+            <span>可观测性</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="metrics">
+                <Icon Type="@IconType.Outline.LineChart" />
+                <span>指标监控</span>
+            </MenuItem>
+            <MenuItem Key="tracing">
+                <Icon Type="@IconType.Outline.Fork" />
+                <span>分布式追踪</span>
+            </MenuItem>
+            <MenuItem Key="logs">
+                <Icon Type="@IconType.Outline.Read" />
+                <span>日志分析</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+
+    @* Saga 编排 *@
+    <MenuItem Key="saga" RouterLink="/saga" Class="menu-item-saga">
+        <Icon Type="@IconType.Outline.Branches" />
+        <span>Saga 编排</span>
     </MenuItem>
+
+    @* 运维操作 *@
+    <SubMenu Key="operations" Class="submenu-group">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Tool" />
+            <span>运维操作</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="instances">
+                <Icon Type="@IconType.Outline.CloudServer" />
+                <span>实例操作</span>
+            </MenuItem>
+            <MenuItem Key="log-retrieval">
+                <Icon Type="@IconType.Outline.Search" />
+                <span>日志检索</span>
+            </MenuItem>
+            <MenuItem Key="diagnosis">
+                <Icon Type="@IconType.Outline.MedicineBox" />
+                <span>远程诊断</span>
+            </MenuItem>
+            <MenuItem Key="profiling">
+                <Icon Type="@IconType.Outline.Fire" />
+                <span>性能剖析</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+
+    @* 开发者门户 *@
+    <SubMenu Key="developer" Class="submenu-group">
+        <TitleTemplate>
+            <Icon Type="@IconType.Outline.Code" />
+            <span>开发者门户</span>
+        </TitleTemplate>
+        <ChildContent>
+            <MenuItem Key="api-catalog">
+                <Icon Type="@IconType.Outline.Book" />
+                <span>API 目录</span>
+            </MenuItem>
+            <MenuItem Key="sdk">
+                <Icon Type="@IconType.Outline.Download" />
+                <span>SDK 下载</span>
+            </MenuItem>
+            <MenuItem Key="sandbox">
+                <Icon Type="@IconType.Outline.Container" />
+                <span>沙箱环境</span>
+            </MenuItem>
+            <MenuItem Key="guide">
+                <Icon Type="@IconType.Outline.FileDone" />
+                <span>接入指南</span>
+            </MenuItem>
+        </ChildContent>
+    </SubMenu>
+
 </Menu>
+
+<style>
+    /* ===== 菜单整体样式 ===== */
+    .microhuaxia-menu {
+        background: transparent !important;
+        border-right: none !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item),
+    .microhuaxia-menu :deep(.ant-menu-submenu-title) {
+        margin: 4px 12px !important;
+        padding: 0 12px !important;
+        border-radius: 8px !important;
+        height: 40px !important;
+        line-height: 40px !important;
+        font-size: 14px !important;
+        color: #43475C !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item:hover),
+    .microhuaxia-menu :deep(.ant-menu-submenu-title:hover) {
+        color: #0A13F0 !important;
+        background: #E9F3FE !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item-selected) {
+        background: #E9F3FE !important;
+        color: #0A13F0 !important;
+        font-weight: 500 !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item-selected::after) {
+        display: none !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item-icon),
+    .microhuaxia-menu :deep(.anticon) {
+        font-size: 16px !important;
+        color: #76747C !important;
+        min-width: 16px !important;
+        margin-right: 12px !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-item:hover .anticon),
+    .microhuaxia-menu :deep(.ant-menu-submenu-title:hover .anticon),
+    .microhuaxia-menu :deep(.ant-menu-item-selected .anticon) {
+        color: #0A13F0 !important;
+    }
+
+    /* ===== 子菜单样式 ===== */
+    .microhuaxia-menu :deep(.ant-menu-submenu) {
+        margin-bottom: 4px;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-submenu-open) > .ant-menu-submenu-title {
+        color: #0A13F0 !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-submenu-open) > .ant-menu-submenu-title .anticon {
+        color: #0A13F0 !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-sub) {
+        background: transparent !important;
+    }
+
+    .microhuaxia-menu :deep(.ant-menu-sub .ant-menu-item) {
+        padding-left: 40px !important;
+    }
+
+    /* ===== 分割线 ===== */
+    .microhuaxia-menu :deep(.ant-menu-item-divider) {
+        margin: 8px 16px !important;
+        background: #ECECEC !important;
+    }
+
+    /* ===== 分组标题 ===== */
+    .submenu-group :deep(.ant-menu-submenu-title) {
+        font-weight: 500 !important;
+    }
+
+    /* ===== 首页特殊样式 ===== */
+    .menu-item-home :deep(.anticon) {
+        color: #0A13F0 !important;
+    }
+
+    /* ===== 折叠状态 ===== */
+    .microhuaxia-menu.ant-menu-inline-collapsed :deep(.ant-menu-item),
+    .microhuaxia-menu.ant-menu-inline-collapsed :deep(.ant-menu-submenu-title) {
+        padding: 0 calc(50% - 8px) !important;
+    }
+
+    .microhuaxia-menu.ant-menu-inline-collapsed :deep(.ant-menu-item-icon),
+    .microhuaxia-menu.ant-menu-inline-collapsed :deep(.anticon) {
+        margin-right: 0 !important;
+    }
+
+    .microhuaxia-menu.ant-menu-inline-collapsed :deep(.ant-menu-submenu-arrow) {
+        display: none !important;
+    }
+</style>
 
 @code {
     [Parameter]
     public bool Collapsed { get; set; }
 
-    private string _selectedKey = "home";
+    private string[] _selectedKeys = ["home"];
+    private string[] _openKeys = [];
 
     protected override void OnInitialized()
+    {
+        UpdateMenuState();
+        NavigationManager.LocationChanged += (_, _) => UpdateMenuState();
+    }
+
+    private void UpdateMenuState()
     {
         var uri = NavigationManager.Uri;
         var path = new Uri(uri).AbsolutePath;
 
-        _selectedKey = path switch
+        _selectedKeys = path switch
         {
-            "/" => "home",
-            "/services" => "services",
-            "/configs" => "configs",
-            "/configs/system" => "system-config",
-            "/configs/gray-release" => "gray-release",
-            "/configs/migration" => "config-migration",
-            "/gateway/routes" => "routes",
-            "/gateway/audit" => "audit",
-            "/mq/topics" => "topics",
-            "/mq/consumers" => "consumers",
-            "/mq/connections" => "connections",
-            "/saga" => "saga",
-            _ when path.StartsWith("/services/") => "services",
-            _ when path.StartsWith("/mq/topics/") => "topics",
-            _ when path.StartsWith("/saga/") => "saga",
-            _ => "home"
+            "/" => ["home"],
+            "/services" => ["services"],
+            "/configs" => ["configs"],
+            "/configs/system" => ["system-config"],
+            "/configs/gray-release" => ["gray-release"],
+            "/configs/migration" => ["config-migration"],
+            "/gateway/routes" => ["routes"],
+            "/gateway/audit" => ["audit"],
+            "/mq/topics" => ["topics"],
+            "/mq/consumers" => ["consumers"],
+            "/mq/connections" => ["connections"],
+            "/saga" => ["saga"],
+            _ when path.StartsWith("/services/") => ["services"],
+            _ when path.StartsWith("/mq/topics/") => ["topics"],
+            _ when path.StartsWith("/saga/") => ["saga"],
+            _ => ["home"]
         };
+
+        // 根据当前路径自动展开对应菜单
+        _openKeys = path switch
+        {
+            "/services" or "/traffic-heatmap" or "/capacity" => ["service-governance"],
+            "/configs" or "/configs/system" or "/configs/gray-release" or "/configs/migration" => ["config-center"],
+            "/gateway/routes" or "/gateway/audit" => ["gateway"],
+            "/mq/topics" or "/mq/consumers" or "/mq/connections" => ["message-queue"],
+            _ => _openKeys
+        };
+
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnMenuItemClicked(MenuItem item)
     {
-        _selectedKey = item.Key;
+        _selectedKeys = [item.Key];
+    }
+
+    private void OnOpenChange(string[] keys)
+    {
+        _openKeys = keys;
     }
 }
