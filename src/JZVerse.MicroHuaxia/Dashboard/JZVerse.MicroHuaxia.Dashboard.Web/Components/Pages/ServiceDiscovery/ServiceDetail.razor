@@ -1,168 +1,559 @@
 @page "/services/{ServiceName}"
 @inject IServiceDiscoveryApiClient ServiceDiscoveryClient
 @inject NavigationManager NavigationManager
-@inject IMessageService MessageService
 
-<PageTitle>服务详情 - @ServiceName</PageTitle>
+<PageTitle>@ServiceName - 服务详情 - 微华夏</PageTitle>
 
-<div>
-    <PageHeader Title="@ServiceName" SubTitle="服务实例详情" OnBack="@GoBack">
-        <PageHeaderExtra>
-            <Space>
-                <SpaceItem>
-                    <Switch @bind-Checked="@_showDeregistered"
-                            CheckedChildren="显示已下线"
-                            UnCheckedChildren="隐藏已下线"
-                            OnChange="OnShowDeregisteredChanged" />
-                </SpaceItem>
-                <SpaceItem>
-                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                        刷新
-                    </Button>
-                </SpaceItem>
-            </Space>
-        </PageHeaderExtra>
-    </PageHeader>
+<div class="service-detail-page">
+    @* 页面标题区 *@
+    <div class="page-header-section">
+        <div class="header-left">
+            <Button Type="@ButtonType.Text" 
+                    Icon="@IconType.Outline.ArrowLeft" 
+                    OnClick="GoBack"
+                    Class="back-btn" />
+            <div class="header-title">
+                <div class="title-row">
+                    <h1>@ServiceName</h1>
+                    <Tag Color="@GetStatusColor(_service.Status)">@GetStatusText(_service.Status)</Tag>
+                    <Tag>@_service.Version</Tag>
+                </div>
+                <p class="subtitle">@_service.Description</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Edit">编辑</Button>
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="Refresh">刷新</Button>
+        </div>
+    </div>
 
-    <Table TItem="ServiceInstance"
-           DataSource="@_instances"
-           Loading="@_loading"
-           Bordered
-           Size="TableSize.Middle"
-           RowClassName="@(r => r.Data.IsDeregistered ? "deregistered-row" : "")">
-        <PropertyColumn Property="c => c.InstanceId" Title="实例 ID" Ellipsis />
-        <PropertyColumn Property="c => c.Host" Title="主机" Width="150" />
-        <PropertyColumn Property="c => c.Port" Title="端口" Width="80" />
-        <PropertyColumn Property="c => c.HealthStatus" Title="健康状态" Width="100">
-            @if (context.IsDeregistered)
-            {
-                <Tag Color="default">已下线</Tag>
-            }
-            else
-            {
-                @switch (context.HealthStatus)
-                {
-                    case HealthStatus.Healthy:
-                        <Tag Color="green">健康</Tag>
-                        break;
-                    case HealthStatus.Unhealthy:
-                        <Tag Color="red">故障</Tag>
-                        break;
-                    case HealthStatus.Degraded:
-                        <Tag Color="orange">降级</Tag>
-                        break;
-                    case HealthStatus.Starting:
-                        <Tag Color="blue">启动中</Tag>
-                        break;
-                    case HealthStatus.Stopping:
-                        <Tag Color="gold">停止中</Tag>
-                        break;
-                    default:
-                        <Tag>未知</Tag>
-                        break;
-                }
-            }
-        </PropertyColumn>
-        <PropertyColumn Property="c => c.Weight" Title="权重" Width="80" />
-        <PropertyColumn Property="c => c.RegisterTime" Title="注册时间" Width="180">
-            @context.RegisterTime.ToString("yyyy-MM-dd HH:mm:ss")
-        </PropertyColumn>
-        <PropertyColumn Property="c => c.LastHeartbeat" Title="最后心跳" Width="180">
-            @context.LastHeartbeat.ToString("yyyy-MM-dd HH:mm:ss")
-        </PropertyColumn>
-        @if (_showDeregistered)
-        {
-            <PropertyColumn Property="c => c.DeregisteredAt" Title="下线时间" Width="180">
-                @if (context.DeregisteredAt.HasValue)
-                {
-                    @context.DeregisteredAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                }
-                else
-                {
-                    <span style="color: #999;">—</span>
-                }
-            </PropertyColumn>
-        }
-        <ActionColumn Title="操作" Width="240">
-            <Space>
-                <SpaceItem>
-                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ShowMetadataModal(context)">
-                        元数据
-                    </Button>
-                </SpaceItem>
-                <SpaceItem>
-                    @if (context.IsDeregistered)
-                    {
-                        <Popconfirm Title="确定要永久删除此实例吗？此操作不可恢复。" OkText="确定" CancelText="取消" OnConfirm="() => PurgeInstance(context.InstanceId)">
-                            <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
-                                永久删除
-                            </Button>
-                        </Popconfirm>
-                    }
-                    else
-                    {
-                        <Popconfirm Title="确定要注销此实例吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeregisterInstance(context.InstanceId)">
-                            <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Stop">
-                                注销
-                            </Button>
-                        </Popconfirm>
-                    }
-                </SpaceItem>
-            </Space>
-        </ActionColumn>
-    </Table>
+    @* 概览卡片 *@
+    <div class="overview-cards">
+        <div class="overview-card">
+            <div class="card-icon bg-blue">
+                <Icon Type="@IconType.Outline.Cluster" />
+            </div>
+            <div class="card-info">
+                <span class="value">@_service.InstanceCount</span>
+                <span class="label">实例总数</span>
+            </div>
+        </div>
+        <div class="overview-card">
+            <div class="card-icon bg-green">
+                <Icon Type="@IconType.Outline.CheckCircle" />
+            </div>
+            <div class="card-info">
+                <span class="value">@_service.HealthyCount</span>
+                <span class="label">健康实例</span>
+            </div>
+        </div>
+        <div class="overview-card">
+            <div class="card-icon bg-orange">
+                <Icon Type="@IconType.Outline.ExclamationCircle" />
+            </div>
+            <div class="card-info">
+                <span class="value">@_service.UnhealthyCount</span>
+                <span class="label">异常实例</span>
+            </div>
+        </div>
+        <div class="overview-card">
+            <div class="card-icon bg-cyan">
+                <Icon Type="@IconType.Outline.ClockCircle" />
+            </div>
+            <div class="card-info">
+                <span class="value">@_service.AvgLatencyMs.ToString("F0")ms</span>
+                <span class="label">平均延迟</span>
+            </div>
+        </div>
+    </div>
+
+    @* 标签页内容 *@
+    <Tabs ActiveKey="@_activeTab" OnChange="OnTabChange" Class="detail-tabs">
+        <TabPane Key="instances" Tab="实例列表">
+            <div class="tab-content">
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <Input Placeholder="搜索IP/端口/版本" 
+                               @bind-Value="_instanceSearch"
+                               AllowClear
++                               Style="width: 280px;" />
+                        <Select @bind-Value="_instanceStatusFilter" 
+                                Style="width: 120px;"
+                                Placeholder="状态筛选">
+                            <SelectOption Value="@("all")">全部状态</SelectOption>
+                            <SelectOption Value="@("running")">运行中</SelectOption>
+                            <SelectOption Value="@("starting")">启动中</SelectOption>
+                            <SelectOption Value="@("stopping")">停止中</SelectOption>
+                            <SelectOption Value="@("error")">异常</SelectOption>
+                        </Select>
+                    </div>
+                    <div class="toolbar-right">
+                        <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Export">导出</Button>
+                    </div>
+                </div>
+
+                <Table TItem="InstanceDetail" 
+                       DataSource="@FilteredInstances"
+                       Loading="@_loading"
+                       RowClassName="@GetInstanceRowClass">
+                    <PropertyColumn Property="c => c.InstanceId" Title="实例ID" Width="200" />
+                    <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
+                        <Tag Color="@GetInstanceStatusColor(context.Status)">
+                            @GetInstanceStatusText(context.Status)
+                        </Tag>
+                    </PropertyColumn>
+                    <PropertyColumn Property="c => c.Ip" Title="地址">
+                        <span class="address">@context.Ip:@context.Port</span>
+                    </PropertyColumn>
+                    <PropertyColumn Property="c => c.Version" Title="版本" Width="100" />
+                    <PropertyColumn Property="c => c.Weight" Title="权重" Width="80" />
+                    <PropertyColumn Property="c => c.CpuUsage" Title="CPU" Width="100">
+                        <Progress Percent="@((int)context.CpuUsage)" Size="small" ShowInfo="false" />
+                    </PropertyColumn>
+                    <PropertyColumn Property="c => c.MemoryUsage" Title="内存" Width="100">
+                        <Progress Percent="@((int)context.MemoryUsage)" Size="small" ShowInfo="false" />
+                    </PropertyColumn>
+                    <PropertyColumn Property="c => c.StartTime" Title="启动时间" Width="160">
+                        @context.StartTime.ToString("yyyy-MM-dd HH:mm")
+                    </PropertyColumn>
+                    <ActionColumn Title="操作" Width="120">
+                        <Space Size="SpaceSize.Small">
+                            <Button Type="@ButtonType.Link" Size="small">详情</Button>
+                            <Dropdown>
+                                <Overlay>
+                                    <Menu>
+                                        <MenuItem Key="1">下线</MenuItem>
+                                        <MenuItem Key="2">重启</MenuItem>
+                                        <MenuItem Key="3">调整权重</MenuItem>
+                                    </Menu>
+                                </Overlay>
+                                <ChildContent>
+                                    <Button Type="@ButtonType.Text" Icon="@IconType.Outline.More" Size="small" />
+                                </ChildContent>
+                            </Dropdown>
+                        </Space>
+                    </ActionColumn>
+                </Table>
+            </div>
+        </TabPane>
+
+        <TabPane Key="health" Tab="健康度">
+            <div class="tab-content">
+                <Row Gutter="(24, 24)">
+                    <Col Xs="24" Lg="8">
+                        <Card Title="健康度评分" Class="health-score-card">
+                            <div class="score-display">
+                                <Progress Type="ProgressType.Circle" 
+                                          Percent="@((int)_service.HealthRate)"
+                                          Width="160"
+                                          StrokeWidth="12"
+                                          StrokeColor="@GetHealthColor(_service.HealthRate)" />
+                                <div class="score-info">
+                                    <span class="score-value">@_service.HealthRate.ToString("F1")</span>
+                                    <span class="score-label">综合评分</span>
+                                </div>
+                            </div>
+                            <div class="score-factors">
+                                <div class="factor-item">
+                                    <div class="factor-header">
+                                        <span>可用率</span>
+                                        <span class="factor-value">99.95%</span>
+                                    </div>
+                                    <Progress Percent="99.95" Size="small" StrokeColor="#10B981" />
+                                </div>
+                                <div class="factor-item">
+                                    <div class="factor-header">
+                                        <span>响应延迟</span>
+                                        <span class="factor-value">45ms</span>
+                                    </div>
+                                    <Progress Percent="85" Size="small" StrokeColor="#3B82F6" />
+                                </div>
+                                <div class="factor-item">
+                                    <div class="factor-header">
+                                        <span>错误率</span>
+                                        <span class="factor-value">0.02%</span>
+                                    </div>
+                                    <Progress Percent="98" Size="small" StrokeColor="#10B981" />
+                                </div>
+                                <div class="factor-item">
+                                    <div class="factor-header">
+                                        <span>资源饱和度</span>
+                                        <span class="factor-value">72%</span>
+                                    </div>
+                                    <Progress Percent="72" Size="small" StrokeColor="#F59E0B" />
+                                </div>
+                            </div>
+                        </Card>
+                    </Col>
+                    <Col Xs="24" Lg="16">
+                        <Card Title="健康检查历史" Class="health-history-card">
+                            <Timeline>
+                                <TimelineItem Color="green">
+                                    <p>健康检查通过</p>
+                                    <p class="time">2024-01-15 10:30:25</p>
+                                </TimelineItem>
+                                <TimelineItem Color="green">
+                                    <p>健康检查通过</p>
+                                    <p class="time">2024-01-15 10:25:25</p>
+                                </TimelineItem>
+                                <TimelineItem Color="orange">
+                                    <p>健康检查警告 - 响应时间偏高</p>
+                                    <p class="time">2024-01-15 10:20:25</p>
+                                </TimelineItem>
+                                <TimelineItem Color="green">
+                                    <p>健康检查通过</p>
+                                    <p class="time">2024-01-15 10:15:25</p>
+                                </TimelineItem>
+                                <TimelineItem Color="red">
+                                    <p>健康检查失败 - 连接超时</p>
+                                    <p class="time">2024-01-15 10:10:25</p>
+                                </TimelineItem>
+                            </Timeline>
+                        </Card>
+                    </Col>
+                </Row>
+            </div>
+        </TabPane>
+
+        <TabPane Key="topology" Tab="依赖拓扑">
+            <div class="tab-content">
+                <Card>
+                    <div class="topology-toolbar">
+                        <Space>
+                            <span>依赖深度</span>
+                            <InputNumber @bind-Value="_topologyDepth" Min="1" Max="5" Style="width: 80px;" />
+                            <span>依赖方向</span>
+                            <Select @bind-Value="_topologyDirection" Style="width: 120px;">
+                                <SelectOption Value="@("upstream")">上游依赖</SelectOption>
+                                <SelectOption Value="@("downstream")">下游被依赖</SelectOption>
+                                <SelectOption Value="@("bidirectional")">双向</SelectOption>
+                            </Select>
+                            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" OnClick="RefreshTopology">刷新</Button>
+                        </Space>
+                    </div>
+                    <div class="topology-canvas">
+                        <Empty Description="拓扑图功能开发中...">
+                            <Icon Type="@IconType.Outline.Cluster" Style="font-size: 64px; color: #ECECEC;" />
+                        </Empty>
+                    </div>
+                </Card>
+            </div>
+        </TabPane>
+
+        <TabPane Key="config" Tab="配置">
+            <div class="tab-content">
+                <Card>
+                    <Descriptions Column="2" Bordered>
+                        <DescriptionsItem Title="服务名称">@ServiceName</DescriptionsItem>
+                        <DescriptionsItem Title="所属命名空间">default</DescriptionsItem>
+                        <DescriptionsItem Title="负载均衡策略">加权轮询</DescriptionsItem>
+                        <DescriptionsItem Title="健康检查间隔">5s</DescriptionsItem>
+                        <DescriptionsItem Title="超时时间">30s</DescriptionsItem>
+                        <DescriptionsItem Title="重试次数">3</DescriptionsItem>
+                        <DescriptionsItem Title="熔断阈值">50%</DescriptionsItem>
+                        <DescriptionsItem Title="恢复时间">30s</DescriptionsItem>
+                    </Descriptions>
+                </Card>
+            </div>
+        </TabPane>
+
+        <TabPane Key="logs" Tab="变更记录">
+            <div class="tab-content">
+                <Timeline Mode="TimelineMode.Alternate">
+                    <TimelineItem Color="blue">
+                        <span class="log-title">实例扩缩容</span>
+                        <p class="log-desc">实例数从 3 扩展到 5</p>
+                        <p class="log-time">2024-01-15 09:30:00</p>
+                    </TimelineItem>
+                    <TimelineItem Color="green">
+                        <span class="log-title">配置更新</span>
+                        <p class="log-desc">更新超时时间为 30s</p>
+                        <p class="log-time">2024-01-14 15:20:00</p>
+                    </TimelineItem>
+                    <TimelineItem Color="orange">
+                        <span class="log-title">版本升级</span>
+                        <p class="log-desc">从 v2.1.0 升级到 v2.2.0</p>
+                        <p class="log-time">2024-01-13 10:00:00</p>
+                    </TimelineItem>
+                    <TimelineItem Color="blue">
+                        <span class="log-title">服务注册</span>
+                        <p class="log-desc">服务首次注册到注册中心</p>
+                        <p class="log-time">2024-01-01 08:00:00</p>
+                    </TimelineItem>
+                </Timeline>
+            </div>
+        </TabPane>
+    </Tabs>
 </div>
 
-@* 元数据编辑模态框 *@
-<Modal Title="实例元数据"
-       Visible="@_metadataModalVisible"
-       OnOk="@SaveMetadata"
-       OnCancel="@(() => _metadataModalVisible = false)"
-       ConfirmLoading="@_saving">
-    @if (_selectedInstance != null)
-    {
-        <Descriptions Bordered Column="1">
-            <DescriptionsItem Title="实例 ID">@_selectedInstance.InstanceId</DescriptionsItem>
-            <DescriptionsItem Title="地址">@_selectedInstance.Host:@_selectedInstance.Port</DescriptionsItem>
-            @if (_selectedInstance.IsDeregistered)
-            {
-                <DescriptionsItem Title="状态"><Tag Color="default">已下线</Tag></DescriptionsItem>
-            }
-        </Descriptions>
-        <Divider>元数据</Divider>
-        @if (_selectedInstance.Metadata.Any())
-        {
-            <Table TItem="KeyValuePair<string, string>"
-                   DataSource="@_selectedInstance.Metadata.ToList()"
-                   Size="TableSize.Small"
-                   HidePagination>
-                <PropertyColumn Property="c => c.Key" Title="键" />
-                <PropertyColumn Property="c => c.Value" Title="值" />
-            </Table>
-        }
-        else
-        {
-            <Empty Description="@("暂无元数据")" />
+<style>
+    .service-detail-page {
+        padding-bottom: 24px;
+    }
+
+    /* ===== 页面标题区 ===== */
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .back-btn {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+    }
+
+    .header-title h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 8px 0;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+        color: #76747C;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 概览卡片 ===== */
+    .overview-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    @@media (max-width: 1200px) {
+        .overview-cards {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
-</Modal>
 
-<style>
-    .deregistered-row {
-        opacity: 0.6;
+    @@media (max-width: 768px) {
+        .overview-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .overview-card {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #fff;
+    }
+
+    .card-icon.bg-blue { background: #0A13F0; }
+    .card-icon.bg-green { background: #10B981; }
+    .card-icon.bg-orange { background: #F59E0B; }
+    .card-icon.bg-cyan { background: #13c2c2; }
+
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .card-info .value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .card-info .label {
+        font-size: 13px;
+        color: #76747C;
+    }
+
+    /* ===== 标签页 ===== */
+    .detail-tabs {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+    }
+
+    .detail-tabs :deep(.ant-tabs-nav) {
+        padding: 0 24px;
+        margin-bottom: 0;
+        border-bottom: 1px solid #ECECEC;
+    }
+
+    .detail-tabs :deep(.ant-tabs-content) {
+        padding: 24px;
+    }
+
+    .tab-content {
+        min-height: 400px;
+    }
+
+    /* ===== 工具栏 ===== */
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .toolbar-left {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 表格样式 ===== */
+    .address {
+        font-family: monospace;
+        font-size: 13px;
+        color: #43475C;
+    }
+
+    /* ===== 健康度卡片 ===== */
+    .health-score-card :deep(.ant-card-body) {
+        padding: 24px;
+    }
+
+    .score-display {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 24px;
+        position: relative;
+    }
+
+    .score-info {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1;
+    }
+
+    .score-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: #040608;
+    }
+
+    .score-label {
+        font-size: 12px;
+        color: #76747C;
+        margin-top: 4px;
+    }
+
+    .score-factors {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .factor-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .factor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .factor-header span:first-child {
+        font-size: 13px;
+        color: #76747C;
+    }
+
+    .factor-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    /* ===== 拓扑图 ===== */
+    .topology-toolbar {
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #ECECEC;
+    }
+
+    .topology-canvas {
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ===== 日志样式 ===== */
+    .log-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .log-desc {
+        font-size: 13px;
+        color: #76747C;
+        margin: 4px 0;
+    }
+
+    .log-time {
+        font-size: 12px;
+        color: #9999A7;
+        margin: 0;
     }
 </style>
 
 @code {
     [Parameter]
-    public string ServiceName { get; set; } = string.Empty;
+    public string ServiceName { get; set; } = "";
 
-    private List<ServiceInstance> _instances = new();
+    private string _activeTab = "instances";
     private bool _loading = false;
-    private bool _metadataModalVisible = false;
-    private bool _saving = false;
-    private bool _showDeregistered = true;
-    private ServiceInstance? _selectedInstance;
+    private string _instanceSearch = "";
+    private string _instanceStatusFilter = "all";
+    private int _topologyDepth = 2;
+    private string _topologyDirection = "bidirectional";
+
+    private ServiceDetailInfo _service = new();
+    private List<InstanceDetail> _instances = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,7 +565,34 @@
         _loading = true;
         try
         {
-            _instances = await ServiceDiscoveryClient.GetInstancesAsync(ServiceName, _showDeregistered);
+            // 模拟数据加载
+            await Task.Delay(500);
+            
+            _service = new ServiceDetailInfo
+            {
+                ServiceName = ServiceName,
+                Description = $"{ServiceName} 微服务，负责核心业务逻辑处理",
+                Status = ServiceStatus.Healthy,
+                Version = "v2.3.1",
+                InstanceCount = 5,
+                HealthyCount = 5,
+                UnhealthyCount = 0,
+                HealthRate = 98.5,
+                AvgLatencyMs = 45
+            };
+
+            _instances = Enumerable.Range(1, 5).Select(i => new InstanceDetail
+            {
+                InstanceId = $"{ServiceName}-{i:D2}",
+                Ip = $"192.168.1.{10 + i}",
+                Port = 8080 + i,
+                Version = i <= 3 ? "v2.3.1" : "v2.3.0",
+                Weight = 100,
+                Status = i == 5 ? InstanceStatus.Starting : InstanceStatus.Running,
+                CpuUsage = Random.Shared.Next(20, 80),
+                MemoryUsage = Random.Shared.Next(30, 70),
+                StartTime = DateTime.Now.AddDays(-Random.Shared.Next(1, 30))
+            }).ToList();
         }
         finally
         {
@@ -182,54 +600,112 @@
         }
     }
 
-    private async Task OnShowDeregisteredChanged(bool value)
-    {
-        _showDeregistered = value;
-        await LoadDataAsync();
-    }
-
-    private void GoBack()
-    {
-        NavigationManager.NavigateTo("/services");
-    }
-
-    private void ShowMetadataModal(ServiceInstance instance)
-    {
-        _selectedInstance = instance;
-        _metadataModalVisible = true;
-    }
-
-    private async Task SaveMetadata()
-    {
-        // TODO: 实现元数据编辑保存
-        _metadataModalVisible = false;
-    }
-
-    private async Task DeregisterInstance(string instanceId)
-    {
-        try
+    private IEnumerable<InstanceDetail> FilteredInstances =>
+        _instances.Where(i =>
         {
-            await ServiceDiscoveryClient.DeregisterInstanceAsync(instanceId);
-            await MessageService.Success("实例已注销");
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            await MessageService.Error($"注销失败: {ex.Message}");
-        }
+            var matchesSearch = string.IsNullOrEmpty(_instanceSearch) ||
+                i.InstanceId.Contains(_instanceSearch, StringComparison.OrdinalIgnoreCase) ||
+                i.Ip.Contains(_instanceSearch) ||
+                i.Version.Contains(_instanceSearch, StringComparison.OrdinalIgnoreCase);
+
+            var matchesStatus = _instanceStatusFilter == "all" ||
+                (_instanceStatusFilter == "running" && i.Status == InstanceStatus.Running) ||
+                (_instanceStatusFilter == "starting" && i.Status == InstanceStatus.Starting) ||
+                (_instanceStatusFilter == "stopping" && i.Status == InstanceStatus.Stopping) ||
+                (_instanceStatusFilter == "error" && i.Status == InstanceStatus.Error);
+
+            return matchesSearch && matchesStatus;
+        });
+
+    private void GoBack() => NavigationManager.NavigateTo("/services");
+
+    private async Task Refresh() => await LoadDataAsync();
+
+    private void OnTabChange(string key) => _activeTab = key;
+
+    private void RefreshTopology()
+    {
+        // 刷新拓扑图
     }
 
-    private async Task PurgeInstance(string instanceId)
+    private static string GetStatusColor(ServiceStatus status) =>
+        status switch
+        {
+            ServiceStatus.Healthy => "green",
+            ServiceStatus.PartialHealthy => "orange",
+            ServiceStatus.Fault => "red",
+            ServiceStatus.Offline => "default",
+            _ => "default"
+        };
+
+    private static string GetStatusText(ServiceStatus status) =>
+        status switch
+        {
+            ServiceStatus.Healthy => "运行中",
+            ServiceStatus.PartialHealthy => "部分异常",
+            ServiceStatus.Fault => "严重异常",
+            ServiceStatus.Offline => "已下线",
+            _ => "未知"
+        };
+
+    private static string GetInstanceStatusColor(InstanceStatus status) =>
+        status switch
+        {
+            InstanceStatus.Running => "green",
+            InstanceStatus.Starting => "blue",
+            InstanceStatus.Stopping => "orange",
+            InstanceStatus.Error => "red",
+            _ => "default"
+        };
+
+    private static string GetInstanceStatusText(InstanceStatus status) =>
+        status switch
+        {
+            InstanceStatus.Running => "运行中",
+            InstanceStatus.Starting => "启动中",
+            InstanceStatus.Stopping => "停止中",
+            InstanceStatus.Error => "异常",
+            _ => "未知"
+        };
+
+    private static string GetHealthColor(double rate) =>
+        rate >= 95 ? "#10B981" : rate >= 80 ? "#3B82F6" : rate >= 60 ? "#F59E0B" : "#EF4444";
+
+    private static string GetInstanceRowClass(InstanceDetail instance) =>
+        instance.Status == InstanceStatus.Error ? "error-row" : "";
+
+    public class ServiceDetailInfo
     {
-        try
-        {
-            await ServiceDiscoveryClient.PurgeInstanceAsync(instanceId);
-            await MessageService.Success("实例已永久删除");
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            await MessageService.Error($"删除失败: {ex.Message}");
-        }
+        public string ServiceName { get; set; } = "";
+        public string Description { get; set; } = "";
+        public ServiceStatus Status { get; set; }
+        public string Version { get; set; } = "";
+        public int InstanceCount { get; set; }
+        public int HealthyCount { get; set; }
+        public int UnhealthyCount { get; set; }
+        public double HealthRate { get; set; }
+        public double AvgLatencyMs { get; set; }
+    }
+
+    public class InstanceDetail
+    {
+        public string InstanceId { get; set; } = "";
+        public InstanceStatus Status { get; set; }
+        public string Ip { get; set; } = "";
+        public int Port { get; set; }
+        public string Version { get; set; } = "";
+        public int Weight { get; set; }
+        public double CpuUsage { get; set; }
+        public double MemoryUsage { get; set; }
+        public DateTime StartTime { get; set; }
+    }
+
+    public enum InstanceStatus
+    {
+        Running,
+        Starting,
+        Stopping,
+        Error,
+        Unknown
     }
 }
