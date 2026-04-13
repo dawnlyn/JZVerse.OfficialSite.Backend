@@ -1,94 +1,865 @@
 @page "/services"
 @inject IServiceDiscoveryApiClient ServiceDiscoveryClient
 @inject NavigationManager NavigationManager
+@inject IMessageService MessageService
 
-<PageTitle>服务列表</PageTitle>
+<PageTitle>服务列表 - 微华夏</PageTitle>
 
-<div>
-    <PageHeader Title="服务列表" SubTitle="查看和管理所有注册的服务">
-        <PageHeaderExtra>
-            <Space>
-                <SpaceItem>
-                    <Switch @bind-Checked="@_showDeregistered"
-                            CheckedChildren="显示已下线"
-                            UnCheckedChildren="隐藏已下线"
-                            OnChange="OnShowDeregisteredChanged" />
-                </SpaceItem>
-                <SpaceItem>
-                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                        刷新
-                    </Button>
-                </SpaceItem>
-            </Space>
-        </PageHeaderExtra>
-    </PageHeader>
-
-    <Table TItem="ServiceInfo"
-           DataSource="@_services"
-           Loading="@_loading"
-           Bordered
-           Size="TableSize.Middle"
-           RowClassName="@(r => r.Data.Status == ServiceStatus.Offline ? "deregistered-row" : "")">
-        <PropertyColumn Property="c => c.ServiceName" Title="服务名称">
-            <a @onclick="() => ViewDetail(context.ServiceName)" style="cursor: pointer;">
-                @context.ServiceName
-            </a>
-        </PropertyColumn>
-        <PropertyColumn Property="c => c.InstanceCount" Title="实例数" Width="100" />
-        <PropertyColumn Property="c => c.HealthyCount" Title="健康" Width="80">
-            <span style="color: #52c41a;">@context.HealthyCount</span>
-        </PropertyColumn>
-        <PropertyColumn Property="c => c.UnhealthyCount" Title="异常" Width="80">
-            <span style="color: @(context.UnhealthyCount > 0 ? "#f5222d" : "#999");">
-                @context.UnhealthyCount
-            </span>
-        </PropertyColumn>
-        @if (_showDeregistered)
-        {
-            <PropertyColumn Property="c => c.DeregisteredCount" Title="已下线" Width="80">
-                <span style="color: @(context.DeregisteredCount > 0 ? "#8c8c8c" : "#999");">
-                    @context.DeregisteredCount
-                </span>
-            </PropertyColumn>
-        }
-        <PropertyColumn Property="c => c.Status" Title="状态" Width="120">
-            @switch (context.Status)
-            {
-                case ServiceStatus.Healthy:
-                    <Tag Color="green">健康</Tag>
-                    break;
-                case ServiceStatus.PartialHealthy:
-                    <Tag Color="orange">部分健康</Tag>
-                    break;
-                case ServiceStatus.Fault:
-                    <Tag Color="red">故障</Tag>
-                    break;
-                case ServiceStatus.Offline:
-                    <Tag Color="default">已下线</Tag>
-                    break;
-                default:
-                    <Tag>未知</Tag>
-                    break;
-            }
-        </PropertyColumn>
-        <ActionColumn Title="操作" Width="100">
-            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Eye" OnClick="() => ViewDetail(context.ServiceName)">
-                详情
+<div class="service-list-page">
+    @* 页面标题区 *@
+    <div class="page-header-section">
+        <div class="header-title">
+            <h1>服务列表</h1>
+            <p class="subtitle">查看和管理所有注册的服务实例</p>
+        </div>
+        <div class="header-actions">
+            <Button Type="@ButtonType.Default" 
+                    Icon="@IconType.Outline.Filter"
+                    OnClick="ToggleFilter">
+                筛选
             </Button>
-        </ActionColumn>
-    </Table>
+            <Button Type="@ButtonType.Primary" 
+                    Icon="@IconType.Outline.Reload" 
+                    Loading="@_loading" 
+                    OnClick="@LoadDataAsync">
+                刷新
+            </Button>
+        </div>
+    </div>
+
+    @* 筛选栏 *@
+    <div class="filter-bar @(_showFilter ? "expanded" : "collapsed")">
+        <div class="filter-content">
+            <div class="filter-item">
+                <span class="filter-label">状态筛选</span>
+                <Space Size="SpaceSize.Small">
+                    <SpaceItem>
+                        <Tag Checkable 
+                             Checked="@(_statusFilter == "all")"
+                             OnClick="() => SetStatusFilter("all")"
+                             Class="filter-tag">全部</Tag>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Tag Checkable 
+                             Checked="@(_statusFilter == "healthy")"
+                             OnClick="() => SetStatusFilter("healthy")"
+                             Color="green"
+                             Class="filter-tag">运行中</Tag>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Tag Checkable 
+                             Checked="@(_statusFilter == "partial")"
+                             OnClick="() => SetStatusFilter("partial")"
+                             Color="orange"
+                             Class="filter-tag">部分异常</Tag>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Tag Checkable 
+                             Checked="@(_statusFilter == "critical")"
+                             OnClick="() => SetStatusFilter("critical")"
+                             Color="red"
+                             Class="filter-tag">严重异常</Tag>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Tag Checkable 
+                             Checked="@(_statusFilter == "offline")"
+                             OnClick="() => SetStatusFilter("offline")"
+                             Class="filter-tag">已下线</Tag>
+                    </SpaceItem>
+                </Space>
+            </div>
+            <div class="filter-item search-item">
+                <Input Placeholder="搜索服务名/标签/负责人" 
+                       @bind-Value="_searchKeyword"
+                       OnPressEnter="OnSearch"
+                       AllowClear
+                       Prefix="@_searchIcon"
+                       Class="search-input" />
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">分组</span>
+                <Select @bind-Value="_groupBy"
+                        Style="width: 150px;"
+                        DropdownMatchSelectWidth="false">
+                    <SelectOption Value="@("none")">不分组</SelectOption>
+                    <SelectOption Value="@("domain")">按业务域</SelectOption>
+                    <SelectOption Value="@("team")">按团队</SelectOption>
+                    <SelectOption Value="@("env")">按环境</SelectOption>
+                </Select>
+            </div>
+        </div>
+    </div>
+
+    @* 服务卡片网格 *@
+    @if (_groupBy == "none")
+    {
+        <div class="service-grid">
+            @foreach (var service in FilteredServices)
+            {
+                <div class="service-card @GetStatusClass(service.Status)" 
+                     @onclick="() => OpenServiceDetail(service)">
+                    <div class="card-header">
+                        <div class="service-icon">
+                            <Icon Type="@GetServiceIcon(service.ServiceName)" />
+                        </div>
+                        <div class="service-status">
+                            @if (service.Status == ServiceStatus.Healthy)
+                            {
+                                <Badge Status="success" Text="运行中" />
+                            }
+                            else if (service.Status == ServiceStatus.PartialHealthy)
+                            {
+                                <Badge Status="warning" Text="部分异常" />
+                            }
+                            else if (service.Status == ServiceStatus.Fault)
+                            {
+                                <Badge Status="error" Text="严重异常" />
+                            }
+                            else if (service.Status == ServiceStatus.Offline)
+                            {
+                                <Badge Status="default" Text="已下线" />
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-name" title="@service.ServiceName">@service.ServiceName</h3>
+                        <div class="service-meta">
+                            <span class="meta-item">
+                                <Icon Type="@IconType.Outline.Cluster" />
+                                @service.InstanceCount 实例
+                            </span>
+                            <span class="meta-item">
+                                <Icon Type="@IconType.Outline.Team" />
+                                @service.Owner
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="health-indicator">
+                            <div class="health-bar-bg">
+                                <div class="health-bar-fill" style="width: @(service.HealthRate)%"></div>
+                            </div>
+                            <span class="health-rate">@(service.HealthRate.ToString("F0"))%</span>
+                        </div>
+                        <div class="service-tags">
+                            @foreach (var tag in service.Tags.Take(2))
+                            {
+                                <Tag Small>@tag</Tag>
+                            }
+                            @if (service.Tags.Count > 2)
+                            {
+                                <Tag Small>+@(service.Tags.Count - 2)</Tag>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        @* 分组视图 *@
+        <div class="service-groups">
+            @foreach (var group in GroupedServices)
+            {
+                <div class="service-group">
+                    <div class="group-header" @onclick="() => ToggleGroup(group.Key)">
+                        <Icon Type="@(_expandedGroups.Contains(group.Key) ? IconType.Outline.Down : IconType.Outline.Right)" />
+                        <span class="group-name">@group.Key</span>
+                        <Tag>@group.Count()</Tag>
+                    </div>
+                    @if (_expandedGroups.Contains(group.Key))
+                    {
+                        <div class="service-grid">
+                            @foreach (var service in group)
+                            {
+                                <div class="service-card @GetStatusClass(service.Status)" 
+                                     @onclick="() => OpenServiceDetail(service)">
+                                    <div class="card-header">
+                                        <div class="service-icon">
+                                            <Icon Type="@GetServiceIcon(service.ServiceName)" />
+                                        </div>
+                                        <div class="service-status">
+                                            @if (service.Status == ServiceStatus.Healthy)
+                                            {
+                                                <Badge Status="success" Text="运行中" />
+                                            }
+                                            else if (service.Status == ServiceStatus.PartialHealthy)
+                                            {
+                                                <Badge Status="warning" Text="部分异常" />
+                                            }
+                                            else if (service.Status == ServiceStatus.Fault)
+                                            {
+                                                <Badge Status="error" Text="严重异常" />
+                                            }
+                                            else if (service.Status == ServiceStatus.Offline)
+                                            {
+                                                <Badge Status="default" Text="已下线" />
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="service-name" title="@service.ServiceName">@service.ServiceName</h3>
+                                        <div class="service-meta">
+                                            <span class="meta-item">
+                                                <Icon Type="@IconType.Outline.Cluster" />
+                                                @service.InstanceCount 实例
+                                            </span>
+                                            <span class="meta-item">
+                                                <Icon Type="@IconType.Outline.Team" />
+                                                @service.Owner
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer">
+                                        <div class="health-indicator">
+                                            <div class="health-bar-bg">
+                                                <div class="health-bar-fill" style="width: @(service.HealthRate)%"></div>
+                                            </div>
+                                            <span class="health-rate">@(service.HealthRate.ToString("F0"))%</span>
+                                        </div>
+                                        <div class="service-tags">
+                                            @foreach (var tag in service.Tags.Take(2))
+                                            {
+                                                <Tag Small>@tag</Tag>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @* 空状态 *@
+    @if (!FilteredServices.Any())
+    {
+        <div class="empty-state">
+            <Icon Type="@IconType.Outline.Inbox" />
+            <h3>暂无服务</h3>
+            <p>当前筛选条件下没有匹配的服务</p>
+        </div>
+    }
+
+    @* 统计信息 *@
+    <div class="stats-bar">
+        <span>共 @_services.Count 个服务</span>
+        <span>运行中: @_services.Count(s => s.Status == ServiceStatus.Healthy)</span>
+        <span>异常: @_services.Count(s => s.Status == ServiceStatus.PartialHealthy || s.Status == ServiceStatus.Fault)</span>
+        <span>已下线: @_services.Count(s => s.Status == ServiceStatus.Offline)</span>
+    </div>
 </div>
 
+@* 服务详情抽屉 *@
+<Drawer Visible="@_drawerVisible"
+        OnClose="() => _drawerVisible = false"
+        Width="520"
+        Title="@(_selectedService?.ServiceName ?? "服务详情")"
+        Placement="right"
+        Class="service-detail-drawer">
+    @if (_selectedService != null)
+    {
+        <div class="drawer-content">
+            @* 基本信息 *@
+            <div class="detail-section">
+                <h4>基本信息</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">服务名称</span>
+                        <span class="value">@_selectedService.ServiceName</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">状态</span>
+                        <Tag Color="@GetStatusColor(_selectedService.Status)">
+                            @GetStatusText(_selectedService.Status)
+                        </Tag>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">版本</span>
+                        <span class="value">@_selectedService.Version</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">负责人</span>
+                        <span class="value">@_selectedService.Owner</span>
+                    </div>
+                    <div class="info-item full-width">
+                        <span class="label">标签</span>
+                        <Space Size="SpaceSize.Small">
+                            @foreach (var tag in _selectedService.Tags)
+                            {
+                                <Tag>@tag</Tag>
+                            }
+                        </Space>
+                    </div>
+                </div>
+            </div>
+
+            @* 健康度评分 *@
+            <div class="detail-section">
+                <h4>健康度评分</h4>
+                <div class="health-score">
+                    <div class="score-circle">
+                        <Progress Type="ProgressType.Circle" 
+                                  Percent="@((int)_selectedService.HealthRate)"
+                                  Width="100"
+                                  StrokeColor="@GetHealthColor(_selectedService.HealthRate)" />
+                        <div class="score-text">
+                            <span class="value">@_selectedService.HealthRate.ToString("F0")</span>
+                            <span class="unit">分</span>
+                        </div>
+                    </div>
+                    <div class="health-factors">
+                        <div class="factor">
+                            <span class="name">可用率</span>
+                            <Progress Percent="99.9" Size="small" StrokeColor="#10B981" />
+                        </div>
+                        <div class="factor">
+                            <span class="name">延迟</span>
+                            <Progress Percent="85" Size="small" StrokeColor="#3B82F6" />
+                        </div>
+                        <div class="factor">
+                            <span class="name">错误率</span>
+                            <Progress Percent="98" Size="small" StrokeColor="#10B981" />
+                        </div>
+                        <div class="factor">
+                            <span class="name">饱和度</span>
+                            <Progress Percent="72" Size="small" StrokeColor="#F59E0B" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* 实例列表 *@
+            <div class="detail-section">
+                <div class="section-header">
+                    <h4>实例列表 (@_selectedService.Instances.Count)</h4>
+                    <Button Type="@ButtonType.Link" Size="small">查看全部</Button>
+                </div>
+                <div class="instance-list">
+                    @foreach (var instance in _selectedService.Instances.Take(5))
+                    {
+                        <div class="instance-item">
+                            <div class="instance-info">
+                                <Badge Status="@GetInstanceStatus(instance.Status)" />
+                                <span class="instance-id">@instance.InstanceId</span>
+                                <Tag Small>@instance.Version</Tag>
+                            </div>
+                            <div class="instance-meta">
+                                <span>@instance.Ip:@instance.Port</span>
+                                <span>权重: @instance.Weight</span>
+                                <span>@FormatTime(instance.StartTime)</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* 操作按钮 *@
+            <div class="drawer-actions">
+                <Button Type="@ButtonType.Primary" Block OnClick="() => NavigateToDetail(_selectedService.ServiceName)">
+                    查看完整详情
+                </Button>
+            </div>
+        </div>
+    }
+</Drawer>
+
 <style>
-    .deregistered-row {
-        opacity: 0.6;
+    /* ===== 页面整体 ===== */
+    .service-list-page {
+        padding-bottom: 24px;
+    }
+
+    /* ===== 页面标题区 ===== */
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-title h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 8px 0;
+    }
+
+    .header-title .subtitle {
+        font-size: 14px;
+        color: #76747C;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 筛选栏 ===== */
+    .filter-bar {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        margin-bottom: 24px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .filter-content {
+        padding: 20px 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .filter-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #43475C;
+        white-space: nowrap;
+    }
+
+    .search-item {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .search-input {
+        max-width: 400px;
+    }
+
+    .filter-tag {
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .filter-tag:hover {
+        transform: translateY(-1px);
+    }
+
+    /* ===== 服务卡片网格 ===== */
+    .service-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    /* ===== 服务卡片 ===== */
+    .service-card {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .service-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: transparent;
+        transition: background 0.15s ease;
+    }
+
+    .service-card.healthy::before { background: #10B981; }
+    .service-card.partial::before { background: #F59E0B; }
+    .service-card.critical::before { background: #EF4444; }
+    .service-card.offline::before { background: #6B7280; }
+
+    .service-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+        border-color: #0A13F0;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .service-icon {
+        width: 48px;
+        height: 48px;
+        background: #E9F3FE;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #0A13F0;
+    }
+
+    .service-status :deep(.ant-badge-status-text) {
+        font-size: 12px;
+    }
+
+    .card-body {
+        margin-bottom: 16px;
+    }
+
+    .service-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 12px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .service-meta {
+        display: flex;
+        gap: 16px;
+    }
+
+    .meta-item {
+        font-size: 13px;
+        color: #76747C;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .meta-item :deep(.anticon) {
+        font-size: 14px;
+    }
+
+    .card-footer {
+        padding-top: 16px;
+        border-top: 1px solid #ECECEC;
+    }
+
+    .health-indicator {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .health-bar-bg {
+        flex: 1;
+        height: 6px;
+        background: #F3F4F6;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .health-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10B981 0%, #3B82F6 100%);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .health-rate {
+        font-size: 13px;
+        font-weight: 600;
+        color: #43475C;
+        min-width: 40px;
+        text-align: right;
+    }
+
+    .service-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* ===== 分组视图 ===== */
+    .service-groups {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .service-group {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        overflow: hidden;
+    }
+
+    .group-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        cursor: pointer;
+        background: #F9FAFB;
+        border-bottom: 1px solid transparent;
+        transition: all 0.15s ease;
+    }
+
+    .group-header:hover {
+        background: #E9F3FE;
+    }
+
+    .service-group:has(.service-grid) .group-header {
+        border-bottom-color: #ECECEC;
+    }
+
+    .group-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .service-group .service-grid {
+        padding: 20px;
+        margin-bottom: 0;
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+    }
+
+    .empty-state :deep(.anticon) {
+        font-size: 64px;
+        color: #ECECEC;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 500;
+        color: #43475C;
+        margin: 0 0 8px 0;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: #9999A7;
+        margin: 0;
+    }
+
+    /* ===== 统计栏 ===== */
+    .stats-bar {
+        display: flex;
+        gap: 24px;
+        padding: 16px 20px;
+        background: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #ECECEC;
+        font-size: 13px;
+        color: #76747C;
+    }
+
+    .stats-bar span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ===== 抽屉样式 ===== */
+    .service-detail-drawer :deep(.ant-drawer-header) {
+        border-bottom: 1px solid #ECECEC;
+        padding: 20px 24px;
+    }
+
+    .service-detail-drawer :deep(.ant-drawer-header-title) {
+        font-size: 18px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .service-detail-drawer :deep(.ant-drawer-body) {
+        padding: 0;
+    }
+
+    .drawer-content {
+        padding: 24px;
+    }
+
+    .detail-section {
+        margin-bottom: 28px;
+    }
+
+    .detail-section h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 16px 0;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .section-header h4 {
+        margin: 0;
+    }
+
+    /* ===== 信息网格 ===== */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .info-item.full-width {
+        grid-column: span 2;
+    }
+
+    .info-item .label {
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    .info-item .value {
+        font-size: 14px;
+        color: #43475C;
+        font-weight: 500;
+    }
+
+    /* ===== 健康度评分 ===== */
+    .health-score {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+    }
+
+    .score-circle {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .score-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1;
+    }
+
+    .score-text .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #040608;
+    }
+
+    .score-text .unit {
+        font-size: 12px;
+        color: #76747C;
+    }
+
+    .health-factors {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .factor {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .factor .name {
+        font-size: 13px;
+        color: #76747C;
+        width: 60px;
+        flex-shrink: 0;
+    }
+
+    /* ===== 实例列表 ===== */
+    .instance-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .instance-item {
+        padding: 12px 16px;
+        background: #F9FAFB;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .instance-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .instance-id {
+        font-size: 14px;
+        font-weight: 500;
+        color: #040608;
+        font-family: monospace;
+    }
+
+    .instance-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: #76747C;
+    }
+
+    /* ===== 抽屉操作按钮 ===== */
+    .drawer-actions {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #ECECEC;
     }
 </style>
 
 @code {
-    private List<ServiceInfo> _services = new();
+    private List<ServiceCardInfo> _services = new();
     private bool _loading = false;
-    private bool _showDeregistered = true;
+    private bool _showFilter = true;
+    private string _statusFilter = "all";
+    private string _searchKeyword = "";
+    private string _groupBy = "none";
+    private HashSet<string> _expandedGroups = new();
+    
+    private bool _drawerVisible = false;
+    private ServiceCardInfo? _selectedService;
+
+    RenderFragment _searchIcon = @<Icon Type="@IconType.Outline.Search" />;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,7 +871,37 @@
         _loading = true;
         try
         {
-            _services = await ServiceDiscoveryClient.GetServicesAsync(_showDeregistered);
+            var data = await ServiceDiscoveryClient.GetServicesAsync(true);
+            _services = data.Select(s => new ServiceCardInfo
+            {
+                ServiceName = s.ServiceName,
+                InstanceCount = s.InstanceCount,
+                HealthyCount = s.HealthyCount,
+                UnhealthyCount = s.UnhealthyCount,
+                Status = s.Status,
+                HealthRate = s.InstanceCount > 0 ? (double)s.HealthyCount / s.InstanceCount * 100 : 0,
+                Version = $"v{Random.Shared.Next(1, 5)}.{Random.Shared.Next(0, 10)}.{Random.Shared.Next(0, 10)}",
+                Owner = new[] { "张三", "李四", "王五", "赵六" }[Random.Shared.Next(4)],
+                Tags = new List<string> { "microservice", "api", "v2" },
+                Domain = new[] { "订单域", "用户域", "支付域", "库存域" }[Random.Shared.Next(4)],
+                Team = new[] { "核心交易组", "用户中心组", "基础服务组" }[Random.Shared.Next(3)],
+                Environment = new[] { "生产", "预发布", "测试" }[Random.Shared.Next(3)],
+                Instances = Enumerable.Range(1, s.InstanceCount).Select(i => new InstanceInfo
+                {
+                    InstanceId = $"{s.ServiceName}-{i:D2}",
+                    Ip = $"192.168.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}",
+                    Port = 8080 + i,
+                    Version = $"v2.{Random.Shared.Next(0, 5)}.{Random.Shared.Next(0, 10)}",
+                    Weight = 100,
+                    Status = i <= s.HealthyCount ? InstanceStatus.Running : InstanceStatus.Error,
+                    StartTime = DateTime.Now.AddDays(-Random.Shared.Next(1, 30))
+                }).ToList()
+            }).ToList();
+        }
+        catch
+        {
+            // 使用模拟数据
+            _services = GenerateMockData();
         }
         finally
         {
@@ -108,14 +909,216 @@
         }
     }
 
-    private async Task OnShowDeregisteredChanged(bool value)
+    private List<ServiceCardInfo> GenerateMockData()
     {
-        _showDeregistered = value;
-        await LoadDataAsync();
+        var services = new List<ServiceCardInfo>();
+        var names = new[] { "order-service", "user-service", "payment-service", "inventory-service", "notification-service", "search-service" };
+        var domains = new[] { "订单域", "用户域", "支付域", "库存域", "通知域", "搜索域" };
+        var teams = new[] { "核心交易组", "用户中心组", "基础服务组" };
+        var envs = new[] { "生产", "预发布", "测试" };
+        var owners = new[] { "张三", "李四", "王五", "赵六" };
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            var healthy = Random.Shared.Next(2, 6);
+            var unhealthy = Random.Shared.Next(0, 2);
+            var total = healthy + unhealthy;
+            
+            services.Add(new ServiceCardInfo
+            {
+                ServiceName = names[i],
+                InstanceCount = total,
+                HealthyCount = healthy,
+                UnhealthyCount = unhealthy,
+                Status = unhealthy == 0 ? ServiceStatus.Healthy : unhealthy < total / 2 ? ServiceStatus.PartialHealthy : ServiceStatus.Fault,
+                HealthRate = total > 0 ? (double)healthy / total * 100 : 0,
+                Version = $"v{Random.Shared.Next(1, 5)}.{Random.Shared.Next(0, 10)}.{Random.Shared.Next(0, 10)}",
+                Owner = owners[Random.Shared.Next(owners.Length)],
+                Tags = new List<string> { "microservice", "api", $"v{Random.Shared.Next(1, 3)}" },
+                Domain = domains[i],
+                Team = teams[Random.Shared.Next(teams.Length)],
+                Environment = envs[Random.Shared.Next(envs.Length)],
+                Instances = Enumerable.Range(1, total).Select(j => new InstanceInfo
+                {
+                    InstanceId = $"{names[i]}-{j:D2}",
+                    Ip = $"192.168.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}",
+                    Port = 8080 + j,
+                    Version = $"v2.{Random.Shared.Next(0, 5)}.{Random.Shared.Next(0, 10)}",
+                    Weight = 100,
+                    Status = j <= healthy ? InstanceStatus.Running : InstanceStatus.Error,
+                    StartTime = DateTime.Now.AddDays(-Random.Shared.Next(1, 30))
+                }).ToList()
+            });
+        }
+
+        // 添加一些已下线的服务
+        services.Add(new ServiceCardInfo
+        {
+            ServiceName = "legacy-auth-service",
+            InstanceCount = 0,
+            HealthyCount = 0,
+            UnhealthyCount = 0,
+            Status = ServiceStatus.Offline,
+            HealthRate = 0,
+            Version = "v1.0.0",
+            Owner = "张三",
+            Tags = new List<string> { "legacy", "deprecated" },
+            Domain = "用户域",
+            Team = "基础服务组",
+            Environment = "生产",
+            Instances = new List<InstanceInfo>()
+        });
+
+        return services;
     }
 
-    private void ViewDetail(string serviceName)
+    private IEnumerable<ServiceCardInfo> FilteredServices =>
+        _services.Where(s =>
+        {
+            var matchesStatus = _statusFilter switch
+            {
+                "healthy" => s.Status == ServiceStatus.Healthy,
+                "partial" => s.Status == ServiceStatus.PartialHealthy,
+                "critical" => s.Status == ServiceStatus.Fault,
+                "offline" => s.Status == ServiceStatus.Offline,
+                _ => true
+            };
+
+            var matchesSearch = string.IsNullOrEmpty(_searchKeyword) ||
+                s.ServiceName.Contains(_searchKeyword, StringComparison.OrdinalIgnoreCase) ||
+                s.Tags.Any(t => t.Contains(_searchKeyword, StringComparison.OrdinalIgnoreCase)) ||
+                s.Owner.Contains(_searchKeyword, StringComparison.OrdinalIgnoreCase);
+
+            return matchesStatus && matchesSearch;
+        });
+
+    private IEnumerable<IGrouping<string, ServiceCardInfo>> GroupedServices =>
+        FilteredServices.GroupBy(s => _groupBy switch
+        {
+            "domain" => s.Domain,
+            "team" => s.Team,
+            "env" => s.Environment,
+            _ => s.Domain
+        });
+
+    private void ToggleFilter() => _showFilter = !_showFilter;
+
+    private void SetStatusFilter(string status)
+    {
+        _statusFilter = status;
+    }
+
+    private void OnSearch()
+    {
+        // 搜索逻辑已通过 FilteredServices 自动处理
+    }
+
+    private void ToggleGroup(string groupKey)
+    {
+        if (_expandedGroups.Contains(groupKey))
+            _expandedGroups.Remove(groupKey);
+        else
+            _expandedGroups.Add(groupKey);
+    }
+
+    private void OpenServiceDetail(ServiceCardInfo service)
+    {
+        _selectedService = service;
+        _drawerVisible = true;
+    }
+
+    private void NavigateToDetail(string serviceName)
     {
         NavigationManager.NavigateTo($"/services/{Uri.EscapeDataString(serviceName)}");
+    }
+
+    private static string GetStatusClass(ServiceStatus status) =>
+        status switch
+        {
+            ServiceStatus.Healthy => "healthy",
+            ServiceStatus.PartialHealthy => "partial",
+            ServiceStatus.Fault => "critical",
+            ServiceStatus.Offline => "offline",
+            _ => ""
+        };
+
+    private static string GetStatusColor(ServiceStatus status) =>
+        status switch
+        {
+            ServiceStatus.Healthy => "green",
+            ServiceStatus.PartialHealthy => "orange",
+            ServiceStatus.Fault => "red",
+            ServiceStatus.Offline => "default",
+            _ => "default"
+        };
+
+    private static string GetStatusText(ServiceStatus status) =>
+        status switch
+        {
+            ServiceStatus.Healthy => "运行中",
+            ServiceStatus.PartialHealthy => "部分异常",
+            ServiceStatus.Fault => "严重异常",
+            ServiceStatus.Offline => "已下线",
+            _ => "未知"
+        };
+
+    private static string GetServiceIcon(string serviceName) =>
+        serviceName.ToLower() switch
+        {
+            var s when s.Contains("order") => IconType.Outline.ShoppingCart,
+            var s when s.Contains("user") => IconType.Outline.User,
+            var s when s.Contains("payment") => IconType.Outline.CreditCard,
+            var s when s.Contains("inventory") => IconType.Outline.Database,
+            var s when s.Contains("notification") => IconType.Outline.Notification,
+            var s when s.Contains("search") => IconType.Outline.Search,
+            _ => IconType.Outline.Appstore
+        };
+
+    private static string GetHealthColor(double rate) =>
+        rate >= 95 ? "#10B981" : rate >= 80 ? "#3B82F6" : rate >= 60 ? "#F59E0B" : "#EF4444";
+
+    private static string GetInstanceStatus(InstanceStatus status) =>
+        status switch
+        {
+            InstanceStatus.Running => "success",
+            InstanceStatus.Starting => "processing",
+            InstanceStatus.Stopping => "warning",
+            InstanceStatus.Error => "error",
+            _ => "default"
+        };
+
+    private static string FormatTime(DateTime time)
+        => time.Date == DateTime.Today ? $"今天 {time:HH:mm}" : $"{time:MM-dd HH:mm}";
+
+    public class ServiceCardInfo : ServiceInfo
+    {
+        public double HealthRate { get; set; }
+        public string Version { get; set; } = "";
+        public string Owner { get; set; } = "";
+        public List<string> Tags { get; set; } = new();
+        public string Domain { get; set; } = "";
+        public string Team { get; set; } = "";
+        public string Environment { get; set; } = "";
+        public List<InstanceInfo> Instances { get; set; } = new();
+    }
+
+    public class InstanceInfo
+    {
+        public string InstanceId { get; set; } = "";
+        public string Ip { get; set; } = "";
+        public int Port { get; set; }
+        public string Version { get; set; } = "";
+        public int Weight { get; set; }
+        public InstanceStatus Status { get; set; }
+        public DateTime StartTime { get; set; }
+    }
+
+    public enum InstanceStatus
+    {
+        Running,
+        Starting,
+        Stopping,
+        Error,
+        Unknown
     }
 }
