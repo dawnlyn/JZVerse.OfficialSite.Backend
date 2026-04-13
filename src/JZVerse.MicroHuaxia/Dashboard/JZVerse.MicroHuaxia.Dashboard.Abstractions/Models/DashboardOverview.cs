@@ -158,6 +158,16 @@ public class MessageQueueOverview
     /// 趋势变化百分比
     /// </summary>
     public double Trend { get; set; }
+
+    /// <summary>
+    /// 消息总数
+    /// </summary>
+    public long TotalMessages { get; set; }
+
+    /// <summary>
+    /// 每秒消息数
+    /// </summary>
+    public double MessagesPerSecond { get; set; }
 }
 
 /// <summary>
@@ -217,4 +227,3 @@ public class ServiceDiscoveryStats : ServiceDiscoveryOverview { }
 public class ConfigCenterStats : ConfigCenterOverview { }
 public class GatewayStats : GatewayOverview { }
 public class MessageQueueStats : MessageQueueOverview { }
-public class SagaStats : SagaOverview { }

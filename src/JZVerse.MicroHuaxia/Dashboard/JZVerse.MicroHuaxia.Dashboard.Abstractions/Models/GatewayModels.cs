@@ -54,6 +54,26 @@ public class RouteInfo
     /// 超时时间（秒）
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// 重试次数
+    /// </summary>
+    public int RetryCount { get; set; } = 3;
+
+    /// <summary>
+    /// 重试间隔（毫秒）
+    /// </summary>
+    public int RetryIntervalMs { get; set; } = 1000;
+
+    /// <summary>
+    /// 熔断错误率阈值(%)
+    /// </summary>
+    public int CircuitBreakerThreshold { get; set; } = 50;
+
+    /// <summary>
+    /// 熔断持续时间（秒）
+    /// </summary>
+    public int CircuitBreakerDuration { get; set; } = 30;
 }
 
 /// <summary>
