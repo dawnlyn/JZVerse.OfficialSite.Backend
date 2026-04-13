@@ -1,168 +1,368 @@
 @page "/configs"
-@inject IConfigCenterApiClient ConfigCenterClient
-@inject IMessageService MessageService
+@inject IConfigCenterApiClient ConfigClient
+@inject NavigationManager NavigationManager
 
-<PageTitle>配置管理</PageTitle>
+<PageTitle>配置管理 - 微华夏</PageTitle>
 
-<div>
-    <PageHeader Title="配置管理" SubTitle="管理应用配置">
-        <PageHeaderExtra>
-            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                刷新
+<div class="config-list-page">
+    @* 页面标题区 *@
+    <div class="page-header-section">
+        <div class="header-title">
+            <h1>配置管理</h1>
+            <p class="subtitle">管理微服务配置，支持版本控制和灰度发布</p>
+        </div>
+        <div class="header-actions">
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Plus" OnClick="CreateConfig">
+                新建配置
             </Button>
-        </PageHeaderExtra>
-    </PageHeader>
+        </div>
+    </div>
 
-    <Row Gutter="16">
-        @* 命名空间列表 *@
-        <Col Span="8">
-            <Card Title="命名空间" Size="small">
-                <Table TItem="ConfigNamespace"
-                       DataSource="@_namespaces"
-                       Loading="@_loading"
-                       Size="TableSize.Small"
-                       OnRowClick="OnNamespaceClick"
-                       RowClassName="@(r => r.Data.Id == _selectedNamespaceId ? "ant-table-row-selected" : "")">
-                    <PropertyColumn Property="c => c.Name" Title="名称" />
-                    <PropertyColumn Property="c => c.ItemCount" Title="配置项数" Width="80" />
-                </Table>
-            </Card>
-        </Col>
+    @* 筛选栏 *@
+    <div class="filter-bar">
+        <div class="filter-content">
+            <div class="filter-item">
+                <span class="filter-label">命名空间</span>
+                <Select @bind-Value="_namespaceFilter" Style="width: 160px;">
+                    <SelectOption Value="@("all")">全部</SelectOption>
+                    <SelectOption Value="@("default")">default</SelectOption>
+                    <SelectOption Value="@("production")">production</SelectOption>
+                    <SelectOption Value="@("testing")">testing</SelectOption>
+                </Select>
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">环境</span>
+                <Select @bind-Value="_envFilter" Style="width: 120px;">
+                    <SelectOption Value="@("all")">全部</SelectOption>
+                    <SelectOption Value="@("dev")">开发</SelectOption>
+                    <SelectOption Value="@("test")">测试</SelectOption>
+                    <SelectOption Value="@("prod")">生产</SelectOption>
+                </Select>
+            </div>
+            <div class="filter-item search-item">
+                <Input Placeholder="搜索配置名/Data ID" 
+                       @bind-Value="_searchKeyword"
+                       OnPressEnter="OnSearch"
+                       AllowClear
++                       Style="width: 300px;" />
+            </div>
+        </div>
+    </div>
 
-        @* 配置项列表 *@
-        <Col Span="16">
-            <Card Title="@($"配置项 - {_selectedNamespace?.Name ?? "请选择命名空间"}")" Size="small">
-                @if (_selectedNamespace != null)
-                {
-                    <Table TItem="ConfigItem"
-                           DataSource="@_configItems"
-                           Loading="@_loadingItems"
-                           Size="TableSize.Small">
-                        <PropertyColumn Property="c => c.Key" Title="配置键" Ellipsis />
-                        <PropertyColumn Property="c => c.Value" Title="配置值" Ellipsis>
-                            <Tooltip Title="@context.Value">
-                                <span>@(context.Value.Length > 50 ? context.Value[..50] + "..." : context.Value)</span>
-                            </Tooltip>
-                        </PropertyColumn>
-                        <PropertyColumn Property="c => c.ValueType" Title="类型" Width="80">
-                            <Tag>@context.ValueType</Tag>
-                        </PropertyColumn>
-                        <PropertyColumn Property="c => c.Version" Title="版本" Width="60" />
-                        <ActionColumn Title="操作" Width="180">
-                            <Space>
-                                <SpaceItem>
-                                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Edit" OnClick="() => EditConfig(context)">
-                                        编辑
-                                    </Button>
-                                </SpaceItem>
-                                <SpaceItem>
-                                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.History" OnClick="() => ShowVersionHistory(context)">
-                                        历史
-                                    </Button>
-                                </SpaceItem>
-                                <SpaceItem>
-                                    <Popconfirm Title="确定要删除此配置吗？" OkText="确定" CancelText="取消" OnConfirm="() => DeleteConfig(context.Id)">
-                                        <Button Type="@ButtonType.Link" Danger Icon="@IconType.Outline.Delete">
-                                            删除
-                                        </Button>
-                                    </Popconfirm>
-                                </SpaceItem>
-                            </Space>
-                        </ActionColumn>
-                    </Table>
-                }
-                else
-                {
-                    <Empty Description="@("请从左侧选择命名空间")" />
-                }
-            </Card>
-        </Col>
-    </Row>
+    @* 配置列表 *@
+    <div class="config-grid">
+        @foreach (var config in FilteredConfigs)
+        {
+            <div class="config-card" @onclick="() => OpenConfigDetail(config)">
+                <div class="card-header">
+                    <div class="config-icon">
+                        <Icon Type="@GetConfigIcon(config.Format)" />
+                    </div>
+                    <div class="config-actions">
+                        <Dropdown Trigger="@([TriggerType.Hover])">
+                            <Overlay>
+                                <Menu>
+                                    <MenuItem Key="1" OnClick="() => EditConfig(config)">
+                                        <Icon Type="@IconType.Outline.Edit" /> 编辑
+                                    </MenuItem>
+                                    <MenuItem Key="2" OnClick="() => ViewHistory(config)">
+                                        <Icon Type="@IconType.Outline.History" /> 历史版本
+                                    </MenuItem>
+                                    <MenuItem Key="3" OnClick="() => CreateGrayRelease(config)">
+                                        <Icon Type="@IconType.Outline.Percentage" /> 灰度发布
+                                    </MenuItem>
+                                    <MenuDivider />
+                                    <MenuItem Key="4" Danger OnClick="() => DeleteConfig(config)">
+                                        <Icon Type="@IconType.Outline.Delete" /> 删除
+                                    </MenuItem>
+                                </Menu>
+                            </Overlay>
+                            <ChildContent>
+                                <Button Type="@ButtonType.Text" Size="small" Icon="@IconType.Outline.More" />
+                            </ChildContent>
+                        </Dropdown>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3 class="config-name" title="@config.DataId">@config.DataId</h3>
+                    <div class="config-group">@config.Group</div>
+                </div>
+                <div class="card-meta">
+                    <div class="meta-row">
+                        <Tag Size="small">@config.Format.ToUpper()</Tag>
+                        <Tag Size="small" Color="@GetEnvColor(config.Environment)">@config.Environment</Tag>
+                        @if (config.HasGrayRelease)
+                        {
+                            <Badge Count="灰度" Style="background-color: #0A13F0;" />
+                        }
+                    </div>
+                    <div class="meta-row time">
+                        <Icon Type="@IconType.Outline.ClockCircle" />
+                        <span>@FormatTime(config.ModifiedTime)</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* 空状态 *@
+    @if (!FilteredConfigs.Any())
+    {
+        <div class="empty-state">
+            <Icon Type="@IconType.Outline.FileText" />
+            <h3>暂无配置</h3>
+            <p>点击右上角按钮创建新配置</p>
+        </div>
+    }
 </div>
 
-@* 配置编辑模态框 *@
-<Modal Title="@(_editingItem?.Id == null ? "新建配置" : "编辑配置")"
-       Visible="@_editModalVisible"
-       OnOk="@SaveConfig"
-       OnCancel="@(() => _editModalVisible = false)"
-       ConfirmLoading="@_saving"
-       Width="600">
-    @if (_editingItem != null)
-    {
-        <Form Model="@_editingItem" LabelColSpan="6" WrapperColSpan="18">
-            <FormItem Label="配置键">
-                <Input @bind-Value="@_editingItem.Key" Placeholder="请输入配置键" />
-            </FormItem>
-            <FormItem Label="配置值">
-                <TextArea @bind-Value="@_editingItem.Value" Rows="6" Placeholder="请输入配置值" />
-            </FormItem>
-            <FormItem Label="值类型">
-                <Select @bind-Value="@_editingItem.ValueType" TItemValue="ConfigValueType" TItem="string">
-                    <SelectOptions>
-                        <SelectOption Value="@ConfigValueType.String" Label="String" />
-                        <SelectOption Value="@ConfigValueType.Json" Label="JSON" />
-                        <SelectOption Value="@ConfigValueType.Yaml" Label="YAML" />
-                        <SelectOption Value="@ConfigValueType.Number" Label="Number" />
-                        <SelectOption Value="@ConfigValueType.Boolean" Label="Boolean" />
-                    </SelectOptions>
-                </Select>
-            </FormItem>
-            <FormItem Label="描述">
-                <TextArea @bind-Value="@_editingItem.Description" Rows="2" Placeholder="配置描述（可选）" />
-            </FormItem>
-        </Form>
-    }
+@* 新建/编辑配置弹窗 *@
+<Modal Visible="@_modalVisible"
+       OnCancel="() => _modalVisible = false"
+       Title="@(_isEditing ? "编辑配置" : "新建配置")"
+       Width="800"
+       Footer="@null">
+    <Form Model="@_formModel" Layout="@FormLayout.Vertical">
+        <Row Gutter="16">
+            <Col Span="12">
+                <FormItem Label="Data ID">
+                    <Input @bind-Value="@_formModel.DataId" Placeholder="请输入Data ID" />
+                </FormItem>
+            </Col>
+            <Col Span="12">
+                <FormItem Label="Group">
+                    <Input @bind-Value="@_formModel.Group" Placeholder="请输入Group" />
+                </FormItem>
+            </Col>
+        </Row>
+        <Row Gutter="16">
+            <Col Span="12">
+                <FormItem Label="命名空间">
+                    <Select @bind-Value="@_formModel.Namespace">
+                        <SelectOption Value="@("default")">default</SelectOption>
+                        <SelectOption Value="@("production")">production</SelectOption>
+                    </Select>
+                </FormItem>
+            </Col>
+            <Col Span="12">
+                <FormItem Label="配置格式">
+                    <Select @bind-Value="@_formModel.Format">
+                        <SelectOption Value="@("yaml")">YAML</SelectOption>
+                        <SelectOption Value="@("json")">JSON</SelectOption>
+                        <SelectOption Value="@("properties")">Properties</SelectOption>
+                        <SelectOption Value="@("toml")">TOML</SelectOption>
+                    </Select>
+                </FormItem>
+            </Col>
+        </Row>
+        <FormItem Label="配置内容">
+            <TextArea @bind-Value="@_formModel.Content" 
+                      Rows="15"
+                      Style="font-family: monospace;" />
+        </FormItem>
+        <FormItem>
+            <div class="modal-actions">
+                <Button OnClick="() => _modalVisible = false">取消</Button>
+                <Button Type="@ButtonType.Primary" OnClick="SaveConfig">保存</Button>
+            </div>
+        </FormItem>
+    </Form>
 </Modal>
 
-@* 版本历史抽屉 *@
-<Drawer Title="@($"版本历史 - {_historyItemKey}")"
-        Width="640"
-        Visible="@_historyDrawerVisible"
-        OnClose="@(() => _historyDrawerVisible = false)">
-    <Table TItem="ConfigVersionInfo"
-           DataSource="@_versionHistory"
-           Loading="@_loadingHistory"
-           Size="TableSize.Small">
-        <PropertyColumn Property="v => v.Version" Title="版本" Width="70" />
-        <PropertyColumn Property="v => v.ChangeType" Title="变更类型" Width="90">
-            <Tag Color="@GetChangeTypeColor(context.ChangeType)">@GetChangeTypeText(context.ChangeType)</Tag>
-        </PropertyColumn>
-        <PropertyColumn Property="v => v.NewValue" Title="新值" Ellipsis>
-            <Tooltip Title="@context.NewValue">
-                <span>@(context.NewValue.Length > 40 ? context.NewValue[..40] + "..." : context.NewValue)</span>
-            </Tooltip>
-        </PropertyColumn>
-        <PropertyColumn Property="v => v.CreatedAt" Title="变更时间" Width="160">
-            @context.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
-        </PropertyColumn>
-        <ActionColumn Title="操作" Width="80">
-            <Popconfirm Title="@($"确定要回滚到版本 {context.Version} 吗？")" OkText="确定" CancelText="取消"
-                        OnConfirm="() => RollbackToVersion(context)">
-                <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Rollback" Size="small">
-                    回滚
-                </Button>
-            </Popconfirm>
-        </ActionColumn>
-    </Table>
-</Drawer>
+<style>
+    .config-list-page {
+        padding-bottom: 24px;
+    }
+
+    /* ===== 页面标题区 ===== */
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-title h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 8px 0;
+    }
+
+    .header-title .subtitle {
+        font-size: 14px;
+        color: #76747C;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 筛选栏 ===== */
+    .filter-bar {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        margin-bottom: 24px;
+    }
+
+    .filter-content {
+        padding: 16px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #43475C;
+    }
+
+    /* ===== 配置卡片网格 ===== */
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    /* ===== 配置卡片 ===== */
+    .config-card {
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .config-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+        border-color: #0A13F0;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .config-icon {
+        width: 44px;
+        height: 44px;
+        background: #E9F3FE;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #0A13F0;
+    }
+
+    .card-body {
+        margin-bottom: 16px;
+    }
+
+    .config-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 6px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .config-group {
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    .card-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 16px;
+        border-top: 1px solid #ECECEC;
+    }
+
+    .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .meta-row.time {
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    .meta-row.time :deep(.anticon) {
+        font-size: 12px;
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        background: #FFFFFF;
+        border-radius: 16px;
+        border: 1px solid #ECECEC;
+    }
+
+    .empty-state :deep(.anticon) {
+        font-size: 64px;
+        color: #ECECEC;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 500;
+        color: #43475C;
+        margin: 0 0 8px 0;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: #9999A7;
+        margin: 0;
+    }
+
+    /* ===== 弹窗样式 ===== */
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+</style>
 
 @code {
-    private List<ConfigNamespace> _namespaces = new();
-    private List<ConfigItem> _configItems = new();
+    private string _namespaceFilter = "all";
+    private string _envFilter = "all";
+    private string _searchKeyword = "";
     private bool _loading = false;
-    private bool _loadingItems = false;
-    private bool _editModalVisible = false;
-    private bool _saving = false;
-    private string? _selectedNamespaceId;
-    private ConfigNamespace? _selectedNamespace;
-    private ConfigItem? _editingItem;
 
-    // 版本历史
-    private bool _historyDrawerVisible;
-    private bool _loadingHistory;
-    private string _historyItemKey = string.Empty;
-    private string _historyItemId = string.Empty;
-    private List<ConfigVersionInfo> _versionHistory = [];
+    private bool _modalVisible = false;
+    private bool _isEditing = false;
+    private ConfigFormModel _formModel = new();
+
+    private List<ConfigInfo> _configs = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,7 +374,16 @@
         _loading = true;
         try
         {
-            _namespaces = await ConfigCenterClient.GetNamespacesAsync();
+            // 模拟数据
+            _configs = new List<ConfigInfo>
+            {
+                new() { DataId = "application.yml", Group = "DEFAULT_GROUP", Namespace = "default", Format = "yaml", Environment = "prod", ModifiedTime = DateTime.Now.AddHours(-2), HasGrayRelease = true },
+                new() { DataId = "database.properties", Group = "DEFAULT_GROUP", Namespace = "default", Format = "properties", Environment = "prod", ModifiedTime = DateTime.Now.AddDays(-1) },
+                new() { DataId = "redis-config.json", Group = "CACHE_GROUP", Namespace = "production", Format = "json", Environment = "prod", ModifiedTime = DateTime.Now.AddDays(-2) },
+                new() { DataId = "rabbitmq.yml", Group = "MQ_GROUP", Namespace = "default", Format = "yaml", Environment = "test", ModifiedTime = DateTime.Now.AddDays(-3) },
+                new() { DataId = "security.toml", Group = "SECURITY_GROUP", Namespace = "production", Format = "toml", Environment = "prod", ModifiedTime = DateTime.Now.AddHours(-5) },
+                new() { DataId = "logging.yml", Group = "DEFAULT_GROUP", Namespace = "default", Format = "yaml", Environment = "dev", ModifiedTime = DateTime.Now.AddDays(-5) }
+            };
         }
         finally
         {
@@ -182,125 +391,105 @@
         }
     }
 
-    private async Task OnNamespaceClick(RowData<ConfigNamespace> row)
+    private IEnumerable<ConfigInfo> FilteredConfigs =>
+        _configs.Where(c =>
+        {
+            var matchesNamespace = _namespaceFilter == "all" || c.Namespace == _namespaceFilter;
+            var matchesEnv = _envFilter == "all" || c.Environment == _envFilter;
+            var matchesSearch = string.IsNullOrEmpty(_searchKeyword) ||
+                c.DataId.Contains(_searchKeyword, StringComparison.OrdinalIgnoreCase);
+            return matchesNamespace && matchesEnv && matchesSearch;
+        });
+
+    private void OnSearch() { }
+
+    private void CreateConfig()
     {
-        _selectedNamespaceId = row.Data.Id;
-        _selectedNamespace = row.Data;
-        await LoadConfigItemsAsync();
+        _isEditing = false;
+        _formModel = new ConfigFormModel();
+        _modalVisible = true;
     }
 
-    private async Task LoadConfigItemsAsync()
+    private void EditConfig(ConfigInfo config)
     {
-        if (_selectedNamespaceId == null) return;
-
-        _loadingItems = true;
-        try
+        _isEditing = true;
+        _formModel = new ConfigFormModel
         {
-            _configItems = await ConfigCenterClient.GetConfigItemsAsync(_selectedNamespaceId);
-        }
-        finally
-        {
-            _loadingItems = false;
-        }
-    }
-
-    private void EditConfig(ConfigItem item)
-    {
-        _editingItem = new ConfigItem
-        {
-            Id = item.Id,
-            Key = item.Key,
-            Value = item.Value,
-            NamespaceId = item.NamespaceId,
-            EnvironmentId = item.EnvironmentId,
-            ValueType = item.ValueType,
-            Description = item.Description
+            DataId = config.DataId,
+            Group = config.Group,
+            Namespace = config.Namespace,
+            Format = config.Format
         };
-        _editModalVisible = true;
+        _modalVisible = true;
     }
 
-    private async Task SaveConfig()
+    private void SaveConfig()
     {
-        if (_editingItem == null) return;
-
-        _saving = true;
-        try
-        {
-            await ConfigCenterClient.UpsertConfigItemAsync(_editingItem);
-            await MessageService.Success("配置已保存");
-            _editModalVisible = false;
-            await LoadConfigItemsAsync();
-        }
-        catch (Exception ex)
-        {
-            await MessageService.Error($"保存失败: {ex.Message}");
-        }
-        finally
-        {
-            _saving = false;
-        }
+        _modalVisible = false;
     }
 
-    private async Task DeleteConfig(string itemId)
+    private void ViewHistory(ConfigInfo config)
     {
-        try
-        {
-            await ConfigCenterClient.DeleteConfigItemAsync(itemId);
-            await MessageService.Success("配置已删除");
-            await LoadConfigItemsAsync();
-        }
-        catch (Exception ex)
-        {
-            await MessageService.Error($"删除失败: {ex.Message}");
-        }
+        // 查看历史版本
     }
 
-    private async Task ShowVersionHistory(ConfigItem item)
+    private void CreateGrayRelease(ConfigInfo config)
     {
-        _historyItemId = item.Id;
-        _historyItemKey = item.Key;
-        _historyDrawerVisible = true;
-        _loadingHistory = true;
-        try
-        {
-            _versionHistory = await ConfigCenterClient.GetConfigVersionHistoryAsync(item.Id);
-        }
-        finally
-        {
-            _loadingHistory = false;
-        }
+        NavigationManager.NavigateTo("/configs/gray-release");
     }
 
-    private async Task RollbackToVersion(ConfigVersionInfo version)
+    private void DeleteConfig(ConfigInfo config)
     {
-        try
-        {
-            await ConfigCenterClient.RollbackConfigVersionAsync(_historyItemId, version.Version, $"从 Dashboard 回滚到版本 {version.Version}");
-            await MessageService.Success($"已回滚到版本 {version.Version}");
-            _versionHistory = await ConfigCenterClient.GetConfigVersionHistoryAsync(_historyItemId);
-            await LoadConfigItemsAsync();
-        }
-        catch (Exception ex)
-        {
-            await MessageService.Error($"回滚失败: {ex.Message}");
-        }
+        // 删除配置
     }
 
-    private static string GetChangeTypeColor(string changeType) => changeType switch
+    private void OpenConfigDetail(ConfigInfo config)
     {
-        "Created" => "green",
-        "Updated" => "blue",
-        "Deleted" => "red",
-        "Rollback" => "orange",
-        _ => "default"
-    };
+        // 打开配置详情
+    }
 
-    private static string GetChangeTypeText(string changeType) => changeType switch
+    private static string GetConfigIcon(string format) =>
+        format.ToLower() switch
+        {
+            "yaml" or "yml" => IconType.Outline.FileYaml,
+            "json" => IconType.Outline.FileJson,
+            "properties" => IconType.Outline.FileText,
+            "toml" => IconType.Outline.FileMarkdown,
+            _ => IconType.Outline.FileUnknown
+        };
+
+    private static string GetEnvColor(string env) =>
+        env.ToLower() switch
+        {
+            "prod" or "production" => "red",
+            "test" or "testing" => "orange",
+            "dev" or "development" => "green",
+            _ => "default"
+        };
+
+    private static string FormatTime(DateTime time)
     {
-        "Created" => "新建",
-        "Updated" => "更新",
-        "Deleted" => "删除",
-        "Rollback" => "回滚",
-        _ => changeType
-    };
+        var diff = DateTime.Now - time;
+        return diff.TotalHours < 24 ? $"{diff.Hours}小时前" : $"{diff.Days}天前";
+    }
+
+    public class ConfigInfo
+    {
+        public string DataId { get; set; } = "";
+        public string Group { get; set; } = "";
+        public string Namespace { get; set; } = "";
+        public string Format { get; set; } = "";
+        public string Environment { get; set; } = "";
+        public DateTime ModifiedTime { get; set; }
+        public bool HasGrayRelease { get; set; }
+    }
+
+    public class ConfigFormModel
+    {
+        public string DataId { get; set; } = "";
+        public string Group { get; set; } = "DEFAULT_GROUP";
+        public string Namespace { get; set; } = "default";
+        public string Format { get; set; } = "yaml";
+        public string Content { get; set; } = "";
+    }
 }
