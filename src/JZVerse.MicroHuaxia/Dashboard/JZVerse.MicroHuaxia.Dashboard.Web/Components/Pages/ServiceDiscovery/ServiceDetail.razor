@@ -76,15 +76,16 @@
                         <Input Placeholder="搜索IP/端口/版本" 
                                @bind-Value="_instanceSearch"
                                AllowClear
-+                               Style="width: 280px;" />
+                               Style="width: 280px;" />
                         <Select @bind-Value="_instanceStatusFilter" 
                                 Style="width: 120px;"
-                                Placeholder="状态筛选">
-                            <SelectOption Value="@("all")">全部状态</SelectOption>
-                            <SelectOption Value="@("running")">运行中</SelectOption>
-                            <SelectOption Value="@("starting")">启动中</SelectOption>
-                            <SelectOption Value="@("stopping")">停止中</SelectOption>
-                            <SelectOption Value="@("error")">异常</SelectOption>
+                                Placeholder="状态筛选"
+                                TItemValue="string" TItem="string">
+                            <SelectOption Value="@("all")" TItemValue="string" TItem="string">全部状态</SelectOption>
+                            <SelectOption Value="@("running")" TItemValue="string" TItem="string">运行中</SelectOption>
+                            <SelectOption Value="@("starting")" TItemValue="string" TItem="string">启动中</SelectOption>
+                            <SelectOption Value="@("stopping")" TItemValue="string" TItem="string">停止中</SelectOption>
+                            <SelectOption Value="@("error")" TItemValue="string" TItem="string">异常</SelectOption>
                         </Select>
                     </div>
                     <div class="toolbar-right">
@@ -95,7 +96,7 @@
                 <Table TItem="InstanceDetail" 
                        DataSource="@FilteredInstances"
                        Loading="@_loading"
-                       RowClassName="@GetInstanceRowClass">
+                       RowClassName="@((RowData<InstanceDetail> r) => GetInstanceRowClass(r.Data))">
                     <PropertyColumn Property="c => c.InstanceId" Title="实例ID" Width="200" />
                     <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
                         <Tag Color="@GetInstanceStatusColor(context.Status)">
@@ -108,17 +109,17 @@
                     <PropertyColumn Property="c => c.Version" Title="版本" Width="100" />
                     <PropertyColumn Property="c => c.Weight" Title="权重" Width="80" />
                     <PropertyColumn Property="c => c.CpuUsage" Title="CPU" Width="100">
-                        <Progress Percent="@((int)context.CpuUsage)" Size="small" ShowInfo="false" />
+                        <Progress Percent="@((int)context.CpuUsage)" Size="@ProgressSize.Small" ShowInfo="false" />
                     </PropertyColumn>
                     <PropertyColumn Property="c => c.MemoryUsage" Title="内存" Width="100">
-                        <Progress Percent="@((int)context.MemoryUsage)" Size="small" ShowInfo="false" />
+                        <Progress Percent="@((int)context.MemoryUsage)" Size="@ProgressSize.Small" ShowInfo="false" />
                     </PropertyColumn>
                     <PropertyColumn Property="c => c.StartTime" Title="启动时间" Width="160">
                         @context.StartTime.ToString("yyyy-MM-dd HH:mm")
                     </PropertyColumn>
                     <ActionColumn Title="操作" Width="120">
-                        <Space Size="SpaceSize.Small">
-                            <Button Type="@ButtonType.Link" Size="small">详情</Button>
+                        <Space Size="@ProgressSize.Small">
+                            <Button Type="@ButtonType.Link" Size="@ProgressSize.Small">详情</Button>
                             <Dropdown>
                                 <Overlay>
                                     <Menu>
@@ -128,7 +129,7 @@
                                     </Menu>
                                 </Overlay>
                                 <ChildContent>
-                                    <Button Type="@ButtonType.Text" Icon="@IconType.Outline.More" Size="small" />
+                                    <Button Type="@ButtonType.Text" Icon="@IconType.Outline.More" Size="@ProgressSize.Small" />
                                 </ChildContent>
                             </Dropdown>
                         </Space>
@@ -159,28 +160,28 @@
                                         <span>可用率</span>
                                         <span class="factor-value">99.95%</span>
                                     </div>
-                                    <Progress Percent="99.95" Size="small" StrokeColor="#10B981" />
+                                    <Progress Percent="99"  />
                                 </div>
                                 <div class="factor-item">
                                     <div class="factor-header">
                                         <span>响应延迟</span>
                                         <span class="factor-value">45ms</span>
                                     </div>
-                                    <Progress Percent="85" Size="small" StrokeColor="#3B82F6" />
+                                    <Progress Percent="85"  />
                                 </div>
                                 <div class="factor-item">
                                     <div class="factor-header">
                                         <span>错误率</span>
                                         <span class="factor-value">0.02%</span>
                                     </div>
-                                    <Progress Percent="98" Size="small" StrokeColor="#10B981" />
+                                    <Progress Percent="98"  />
                                 </div>
                                 <div class="factor-item">
                                     <div class="factor-header">
                                         <span>资源饱和度</span>
                                         <span class="factor-value">72%</span>
                                     </div>
-                                    <Progress Percent="72" Size="small" StrokeColor="#F59E0B" />
+                                    <Progress Percent="72"  />
                                 </div>
                             </div>
                         </Card>
@@ -221,18 +222,18 @@
                     <div class="topology-toolbar">
                         <Space>
                             <span>依赖深度</span>
-                            <InputNumber @bind-Value="_topologyDepth" Min="1" Max="5" Style="width: 80px;" />
+                            <AntDesign.InputNumber @bind-Value="_topologyDepth" Min="1" Max="5" Style="width: 80px;" TValue="int" />
                             <span>依赖方向</span>
-                            <Select @bind-Value="_topologyDirection" Style="width: 120px;">
-                                <SelectOption Value="@("upstream")">上游依赖</SelectOption>
-                                <SelectOption Value="@("downstream")">下游被依赖</SelectOption>
-                                <SelectOption Value="@("bidirectional")">双向</SelectOption>
+                            <Select @bind-Value="_topologyDirection" Style="width: 120px;" TItemValue="string" TItem="string">
+                                <SelectOption Value="@("upstream")" TItemValue="string" TItem="string">上游依赖</SelectOption>
+                                <SelectOption Value="@("downstream")" TItemValue="string" TItem="string">下游被依赖</SelectOption>
+                                <SelectOption Value="@("bidirectional")" TItemValue="string" TItem="string">双向</SelectOption>
                             </Select>
                             <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" OnClick="RefreshTopology">刷新</Button>
                         </Space>
                     </div>
                     <div class="topology-canvas">
-                        <Empty Description="拓扑图功能开发中...">
+                        <Empty Description="@("拓扑图功能开发中")">
                             <Icon Type="@IconType.Outline.Cluster" Style="font-size: 64px; color: #ECECEC;" />
                         </Empty>
                     </div>

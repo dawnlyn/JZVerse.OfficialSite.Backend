@@ -47,13 +47,13 @@
                DataSource="@_routes"
                Loading="@_loading"
                Size="TableSize.Middle"
-               RowClassName="@GetRowClass">
+               RowClassName="@((RowData<RouteInfo> r) => GetRowClass(r.Data))">
             <PropertyColumn Property="c => c.Name" Title="路由名称" Width="180">
                 <div class="route-name">
                     <span class="name">@context.Name</span>
                     @if (context.Priority > 100)
                     {
-                        <Tag Color="orange" Size="small">高优</Tag>
+                        <Tag Color="orange" >高优</Tag>
                     }
                 </div>
             </PropertyColumn>
@@ -61,14 +61,14 @@
                 <code class="route-path">@context.Path</code>
             </PropertyColumn>
             <PropertyColumn Property="c => c.Methods" Title="HTTP 方法" Width="180">
-                <Space Size="SpaceSize.Small" Wrap>
+                <Space  Wrap>
                     @foreach (var method in context.Methods.Take(4))
                     {
-                        <Tag Color="@GetMethodColor(method)" Size="small">@method</Tag>
+                        <Tag Color="@GetMethodColor(method)" >@method</Tag>
                     }
                     @if (context.Methods.Count > 4)
                     {
-                        <Tag Size="small">+@(context.Methods.Count - 4)</Tag>
+                        <Tag >+@(context.Methods.Count - 4)</Tag>
                     }
                 </Space>
             </PropertyColumn>
@@ -88,7 +88,7 @@
                         OnChange="@((v) => ToggleRoute(context, v))" />
             </PropertyColumn>
             <ActionColumn Title="操作" Width="150">
-                <Space Size="SpaceSize.Small">
+                <Space >
                     <Tooltip Title="编辑">
                         <Button Type="@ButtonType.Text" 
                                 Icon="@IconType.Outline.Edit" 
@@ -125,70 +125,66 @@
        Class="route-modal">
     @if (_editingRoute != null)
     {
-        <Form Model="@_editingRoute" Layout="@FormLayout.Vertical">
-            <Row Gutter="16">
-                <Col Span="12">
+        <Form Model="_editingRoute" Layout="@FormLayout.Vertical">
+            <AntDesign.Row Gutter="16">
+                <AntDesign.Col Span="12">
                     <FormItem Label="路由名称" Required>
                         <Input @bind-Value="@_editingRoute.Name" 
                                Placeholder="请输入路由名称" />
                     </FormItem>
-                </Col>
-                <Col Span="12">
+                </AntDesign.Col>
+                <AntDesign.Col Span="12">
                     <FormItem Label="优先级">
-                        <AntDesign.InputNumber @bind-Value="@_editingRoute.Priority" 
+                        <AntDesign.InputNumber @bind-Value="_editingRoute.Priority" 
                                                Min="0" 
                                                Max="1000"
-                                               Style="width: 100%;" />
+                                               Style="width: 100%;" TValue="int" />
                     </FormItem>
-                </Col>
-            </Row>
+                </AntDesign.Col>
+            </AntDesign.Row>
             <FormItem Label="匹配路径" Required>
-                <Input @bind-Value="@_editingRoute.Path" 
-                       Placeholder="例如：/api/users/**">
-                    <Prefix><Icon Type="@IconType.Outline.Gateway" /></Prefix>
-                </Input>
+                <Input @bind-Value="_editingRoute.Path" 
+                       Placeholder="例如：/api/users/**" />
             </FormItem>
             <FormItem Label="HTTP 方法" Required>
                 <CheckboxGroup @bind-Value="@_selectedMethods" 
                                Options="@_methodOptions" />
             </FormItem>
-            <Row Gutter="16">
-                <Col Span="12">
+            <AntDesign.Row Gutter="16">
+                <AntDesign.Col Span="12">
                     <FormItem Label="目标服务" Required>
-                        <Input @bind-Value="@_editingRoute.TargetService" 
-                               Placeholder="请输入目标服务名称">
-                            <Prefix><Icon Type="@IconType.Outline.Cluster" /></Prefix>
-                        </Input>
+                        <Input @bind-Value="_editingRoute.TargetService" 
+                               Placeholder="请输入目标服务名称" />
                     </FormItem>
-                </Col>
-                <Col Span="12">
+                </AntDesign.Col>
+                <AntDesign.Col Span="12">
                     <FormItem Label="目标路径">
                         <Input @bind-Value="@_editingRoute.TargetPath" 
                                Placeholder="请输入目标路径" />
                     </FormItem>
-                </Col>
-            </Row>
-            <Row Gutter="16">
-                <Col Span="12">
+                </AntDesign.Col>
+            </AntDesign.Row>
+            <AntDesign.Row Gutter="16">
+                <AntDesign.Col Span="12">
                     <FormItem Label="负载均衡策略">
-                        <Select @bind-Value="@_editingRoute.LoadBalancer">
-                            <SelectOption Value="@("RoundRobin")">轮询 (RoundRobin)</SelectOption>
-                            <SelectOption Value="@("Random")">随机 (Random)</SelectOption>
-                            <SelectOption Value="@("WeightedRoundRobin")">加权轮询</SelectOption>
-                            <SelectOption Value="@("LeastConnections")">最少连接</SelectOption>
-                            <SelectOption Value="@("IpHash")">IP 哈希</SelectOption>
+                        <Select @bind-Value="_editingRoute.LoadBalancer" TItemValue="string" TItem="string">
+                            <SelectOption Value="@("RoundRobin")" TItemValue="string" TItem="string">轮询 (RoundRobin)</SelectOption>
+                            <SelectOption Value="@("Random")" TItemValue="string" TItem="string">随机 (Random)</SelectOption>
+                            <SelectOption Value="@("WeightedRoundRobin")" TItemValue="string" TItem="string">加权轮询</SelectOption>
+                            <SelectOption Value="@("LeastConnections")" TItemValue="string" TItem="string">最少连接</SelectOption>
+                            <SelectOption Value="@("IpHash")" TItemValue="string" TItem="string">IP 哈希</SelectOption>
                         </Select>
                     </FormItem>
-                </Col>
-                <Col Span="12">
+                </AntDesign.Col>
+                <AntDesign.Col Span="12">
                     <FormItem Label="超时时间(秒)">
-                        <AntDesign.InputNumber @bind-Value="@_editingRoute.TimeoutSeconds" 
+                        <AntDesign.InputNumber @bind-Value="_editingRoute.TimeoutSeconds" 
                                                Min="1" 
                                                Max="300"
-                                               Style="width: 100%;" />
+                                               Style="width: 100%;" TValue="int" />
                     </FormItem>
-                </Col>
-            </Row>
+                </AntDesign.Col>
+            </AntDesign.Row>
             <FormItem Label="启用状态">
                 <Switch @bind-Checked="@_editingRoute.Enabled"
                         CheckedChildren="启用"

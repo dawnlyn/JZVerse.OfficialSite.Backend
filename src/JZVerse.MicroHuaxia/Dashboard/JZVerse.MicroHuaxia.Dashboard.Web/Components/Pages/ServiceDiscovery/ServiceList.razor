@@ -32,7 +32,7 @@
         <div class="filter-content">
             <div class="filter-item">
                 <span class="filter-label">状态筛选</span>
-                <Space Size="SpaceSize.Small">
+                <Space >
                     <SpaceItem>
                         <Tag Checkable 
                              Checked="@(_statusFilter == "all")"
@@ -80,11 +80,12 @@
                 <span class="filter-label">分组</span>
                 <Select @bind-Value="_groupBy"
                         Style="width: 150px;"
-                        DropdownMatchSelectWidth="false">
-                    <SelectOption Value="@("none")">不分组</SelectOption>
-                    <SelectOption Value="@("domain")">按业务域</SelectOption>
-                    <SelectOption Value="@("team")">按团队</SelectOption>
-                    <SelectOption Value="@("env")">按环境</SelectOption>
+                        DropdownMatchSelectWidth="false"
+                        TItemValue="string" TItem="string">
+                    <SelectOption Value="@("none")" TItemValue="string" TItem="string">不分组</SelectOption>
+                    <SelectOption Value="@("domain")" TItemValue="string" TItem="string">按业务域</SelectOption>
+                    <SelectOption Value="@("team")" TItemValue="string" TItem="string">按团队</SelectOption>
+                    <SelectOption Value="@("env")" TItemValue="string" TItem="string">按环境</SelectOption>
                 </Select>
             </div>
         </div>
@@ -287,7 +288,7 @@
                     </div>
                     <div class="info-item full-width">
                         <span class="label">标签</span>
-                        <Space Size="SpaceSize.Small">
+                        <Space >
                             @foreach (var tag in _selectedService.Tags)
                             {
                                 <Tag>@tag</Tag>
@@ -314,19 +315,19 @@
                     <div class="health-factors">
                         <div class="factor">
                             <span class="name">可用率</span>
-                            <Progress Percent="99.9" Size="small" StrokeColor="#10B981" />
+                            <Progress Percent="99"   />
                         </div>
                         <div class="factor">
                             <span class="name">延迟</span>
-                            <Progress Percent="85" Size="small" StrokeColor="#3B82F6" />
+                            <Progress Percent="85"   />
                         </div>
                         <div class="factor">
                             <span class="name">错误率</span>
-                            <Progress Percent="98" Size="small" StrokeColor="#10B981" />
+                            <Progress Percent="98"   />
                         </div>
                         <div class="factor">
                             <span class="name">饱和度</span>
-                            <Progress Percent="72" Size="small" StrokeColor="#F59E0B" />
+                            <Progress Percent="72"   />
                         </div>
                     </div>
                 </div>
@@ -336,7 +337,7 @@
             <div class="detail-section">
                 <div class="section-header">
                     <h4>实例列表 (@_selectedService.Instances.Count)</h4>
-                    <Button Type="@ButtonType.Link" Size="small">查看全部</Button>
+                    <Button Type="@ButtonType.Link" >查看全部</Button>
                 </div>
                 <div class="instance-list">
                     @foreach (var instance in _selectedService.Instances.Take(5))

@@ -50,7 +50,7 @@
                                 Min="0" 
                                 Max="100"
                                 TooltipVisible="true"
-                                OnChange="() => UpdateCanaryPercentage(task)" />
+                                OnAfterChange="(int v) => UpdateCanaryPercentage(task)" />
                         <div class="progress-labels">
                             <span>稳定版 (v@(task.BaseVersion))</span>
                             <span>金丝雀 (v@(task.NewVersion))</span>
@@ -75,7 +75,7 @@
                         <div class="metric">
                             <span class="label">延迟对比</span>
                             <span class="value @GetComparisonClass(task.CanaryLatency, task.BaseLatency)">
-                                @task.CanaryLatencyms vs @task.BaseLatencyms
+                                @task.CanaryLatency vs @task.BaseLatency
                             </span>
                         </div>
                     </div>
@@ -96,7 +96,7 @@
             
             @if (!_activeTasks.Any())
             {
-                <Empty Description="暂无进行中的金丝雀发布任务">
+                <Empty Description="@("暂无进行中的金丝雀发布任务")">
                     <Icon Type="@IconType.Outline.Experiment" Style="font-size: 64px; color: #ECECEC;" />
                 </Empty>
             }
@@ -109,13 +109,13 @@
             <Icon Type="@IconType.Outline.History" />
             历史任务
         </h2>
-        <Table TItem="CanaryTask" DataSource="@_historyTasks" Size="TableSize.Middle">
+        <Table TItem="CanaryTask" DataSource="@_historyTasks" Size="@TableSize.Middle">
             <PropertyColumn Property="c => c.Name" Title="任务名称" />
             <PropertyColumn Property="c => c.ServiceName" Title="服务" />
             <PropertyColumn Property="c => c.BaseVersion" Title="基线版本" Width="100" />
             <PropertyColumn Property="c => c.NewVersion" Title="新版本" Width="100" />
             <PropertyColumn Property="c => c.FinalPercentage" Title="最终灰度比例" Width="120">
-                <Progress Percent="@context.FinalPercentage" Size="small" />
+                <Progress Percent="@context.FinalPercentage"  />
             </PropertyColumn>
             <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
                 <Tag Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</Tag>
@@ -138,10 +138,10 @@
             <Input @bind-Value="@_newTask.Name" Placeholder="例如：订单服务v2.3灰度发布" />
         </FormItem>
         <FormItem Label="选择服务" Required>
-            <Select @bind-Value="@_newTask.ServiceName" Placeholder="请选择服务">
-                <SelectOption Value="@("order-service")">order-service</SelectOption>
-                <SelectOption Value="@("user-service")">user-service</SelectOption>
-                <SelectOption Value="@("payment-service")">payment-service</SelectOption>
+            <Select @bind-Value="@_newTask.ServiceName" Placeholder="请选择服务" TItemValue="string" TItem="string">
+                <SelectOption Value="@("order-service")" TItemValue="string" TItem="string">order-service</SelectOption>
+                <SelectOption Value="@("user-service")" TItemValue="string" TItem="string">user-service</SelectOption>
+                <SelectOption Value="@("payment-service")" TItemValue="string" TItem="string">payment-service</SelectOption>
             </Select>
         </FormItem>
         <Row Gutter="16">
@@ -165,11 +165,11 @@
             </RadioGroup>
         </FormItem>
         <FormItem Label="灰度规则">
-            <Select @bind-Value="@_newTask.RuleType" Style="margin-bottom: 12px;">
-                <SelectOption Value="@("percentage")">按比例分配</SelectOption>
-                <SelectOption Value="@("header")">按 Header</SelectOption>
-                <SelectOption Value="@("cookie")">按 Cookie</SelectOption>
-                <SelectOption Value="@("user")">按用户ID</SelectOption>
+            <Select @bind-Value="@_newTask.RuleType" Style="margin-bottom: 12px;" TItemValue="string" TItem="string">
+                <SelectOption Value="@("percentage")" TItemValue="string" TItem="string">按比例分配</SelectOption>
+                <SelectOption Value="@("header")" TItemValue="string" TItem="string">按 Header</SelectOption>
+                <SelectOption Value="@("cookie")" TItemValue="string" TItem="string">按 Cookie</SelectOption>
+                <SelectOption Value="@("user")" TItemValue="string" TItem="string">按用户ID</SelectOption>
             </Select>
             @if (_newTask.RuleType != "percentage")
             {

@@ -249,7 +249,7 @@
             </div>
             <div class="card-footer">
                 <span class="info-text">
-                    <Icon Type="@IconType.Outline.Shield" />
+                    <Icon Type="@IconType.Outline.Safety" />
                     限流规则: @_overview.Traffic.RateLimitRules 条
                 </span>
             </div>
@@ -925,13 +925,13 @@
         return total > 0 ? Math.Round((double)_overview.Saga.Completed / total * 100, 1) : 100;
     }
 
-    private static string FormatNumber(long num) =>
+    private static string FormatNumber(double num) =>
         num switch
         {
             >= 100000000 => $"{num / 100000000D:F1}亿",
             >= 10000 => $"{num / 10000D:F1}万",
             >= 1000 => $"{num / 1000D:F1}K",
-            _ => num.ToString()
+            _ => num.ToString("F0")
         };
 
     private static string FormatTime(DateTime time)

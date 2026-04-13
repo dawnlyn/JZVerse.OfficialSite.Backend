@@ -23,20 +23,20 @@
         <div class="filter-content">
             <div class="filter-item">
                 <span class="filter-label">命名空间</span>
-                <Select @bind-Value="_namespaceFilter" Style="width: 160px;">
-                    <SelectOption Value="@("all")">全部</SelectOption>
-                    <SelectOption Value="@("default")">default</SelectOption>
-                    <SelectOption Value="@("production")">production</SelectOption>
-                    <SelectOption Value="@("testing")">testing</SelectOption>
+                <Select @bind-Value="_namespaceFilter" Style="width: 160px;" TItemValue="string" TItem="string">
+                    <SelectOption Value="@("all")" TItemValue="string" TItem="string">全部</SelectOption>
+                    <SelectOption Value="@("default")" TItemValue="string" TItem="string">default</SelectOption>
+                    <SelectOption Value="@("production")" TItemValue="string" TItem="string">production</SelectOption>
+                    <SelectOption Value="@("testing")" TItemValue="string" TItem="string">testing</SelectOption>
                 </Select>
             </div>
             <div class="filter-item">
                 <span class="filter-label">环境</span>
-                <Select @bind-Value="_envFilter" Style="width: 120px;">
-                    <SelectOption Value="@("all")">全部</SelectOption>
-                    <SelectOption Value="@("dev")">开发</SelectOption>
-                    <SelectOption Value="@("test")">测试</SelectOption>
-                    <SelectOption Value="@("prod")">生产</SelectOption>
+                <Select @bind-Value="_envFilter" Style="width: 120px;" TItemValue="string" TItem="string">
+                    <SelectOption Value="@("all")" TItemValue="string" TItem="string">全部</SelectOption>
+                    <SelectOption Value="@("dev")" TItemValue="string" TItem="string">开发</SelectOption>
+                    <SelectOption Value="@("test")" TItemValue="string" TItem="string">测试</SelectOption>
+                    <SelectOption Value="@("prod")" TItemValue="string" TItem="string">生产</SelectOption>
                 </Select>
             </div>
             <div class="filter-item search-item">
@@ -44,7 +44,7 @@
                        @bind-Value="_searchKeyword"
                        OnPressEnter="OnSearch"
                        AllowClear
-+                       Style="width: 300px;" />
+                       Style="width: 300px;" />
             </div>
         </div>
     </div>
@@ -59,7 +59,7 @@
                         <Icon Type="@GetConfigIcon(config.Format)" />
                     </div>
                     <div class="config-actions">
-                        <Dropdown Trigger="@([TriggerType.Hover])">
+                        <Dropdown Trigger="@([Trigger.Hover])">
                             <Overlay>
                                 <Menu>
                                     <MenuItem Key="1" OnClick="() => EditConfig(config)">
@@ -93,7 +93,7 @@
                         <Tag Size="small" Color="@GetEnvColor(config.Environment)">@config.Environment</Tag>
                         @if (config.HasGrayRelease)
                         {
-                            <Badge Count="灰度" Style="background-color: #0A13F0;" />
+                            <Badge Color="blue" Text="灰度" />
                         }
                     </div>
                     <div class="meta-row time">
@@ -138,19 +138,19 @@
         <Row Gutter="16">
             <Col Span="12">
                 <FormItem Label="命名空间">
-                    <Select @bind-Value="@_formModel.Namespace">
-                        <SelectOption Value="@("default")">default</SelectOption>
-                        <SelectOption Value="@("production")">production</SelectOption>
+                    <Select @bind-Value="@_formModel.Namespace" TItemValue="string" TItem="string">
+                        <SelectOption Value="@("default")" TItemValue="string" TItem="string">default</SelectOption>
+                        <SelectOption Value="@("production")" TItemValue="string" TItem="string">production</SelectOption>
                     </Select>
                 </FormItem>
             </Col>
             <Col Span="12">
                 <FormItem Label="配置格式">
-                    <Select @bind-Value="@_formModel.Format">
-                        <SelectOption Value="@("yaml")">YAML</SelectOption>
-                        <SelectOption Value="@("json")">JSON</SelectOption>
-                        <SelectOption Value="@("properties")">Properties</SelectOption>
-                        <SelectOption Value="@("toml")">TOML</SelectOption>
+                    <Select @bind-Value="@_formModel.Format" TItemValue="string" TItem="string">
+                        <SelectOption Value="@("yaml")" TItemValue="string" TItem="string">YAML</SelectOption>
+                        <SelectOption Value="@("json")" TItemValue="string" TItem="string">JSON</SelectOption>
+                        <SelectOption Value="@("properties")" TItemValue="string" TItem="string">Properties</SelectOption>
+                        <SelectOption Value="@("toml")" TItemValue="string" TItem="string">TOML</SelectOption>
                     </Select>
                 </FormItem>
             </Col>
@@ -451,10 +451,10 @@
     private static string GetConfigIcon(string format) =>
         format.ToLower() switch
         {
-            "yaml" or "yml" => IconType.Outline.FileYaml,
-            "json" => IconType.Outline.FileJson,
+            "yaml" or "yml" => IconType.Outline.FileText,
+            "json" => IconType.Outline.FileText,
             "properties" => IconType.Outline.FileText,
-            "toml" => IconType.Outline.FileMarkdown,
+            "toml" => IconType.Outline.FileText,
             _ => IconType.Outline.FileUnknown
         };
 
