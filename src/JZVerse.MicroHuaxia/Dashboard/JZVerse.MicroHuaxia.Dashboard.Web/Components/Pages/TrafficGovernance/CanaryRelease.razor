@@ -1,0 +1,496 @@
+@page "/traffic/canary"
+@inject IServiceDiscoveryApiClient ServiceDiscoveryClient
+
+<PageTitle>金丝雀发布 - 微华夏</PageTitle>
+
+<div class="canary-page">
+    @* 页面标题区 *@
+    <div class="page-header-section">
+        <div class="header-title">
+            <h1>金丝雀发布</h1>
+            <p class="subtitle">渐进式发布新版本，降低上线风险</p>
+        </div>
+        <div class="header-actions">
+            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Plus" OnClick="ShowCreateModal">
+                新建发布任务
+            </Button>
+        </div>
+    </div>
+
+    @* 进行中的任务 *@
+    <div class="section">
+        <h2 class="section-title">
+            <Icon Type="@IconType.Outline.ClockCircle" />
+            进行中的任务
+        </h2>
+        <div class="task-list">
+            @foreach (var task in _activeTasks)
+            {
+                <Card Class="task-card">
+                    <div class="task-header">
+                        <div class="task-info">
+                            <h3>@task.Name</h3>
+                            <div class="task-meta">
+                                <Tag>@task.ServiceName</Tag>
+                                <Tag Color="blue">v@(task.NewVersion)</Tag>
+                                <span class="create-time">创建于 @task.CreatedAt.ToString("MM-dd HH:mm")</span>
+                            </div>
+                        </div>
+                        <div class="task-status">
+                            <Badge Status="processing" Text="进行中" />
+                        </div>
+                    </div>
+                    
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span>灰度比例</span>
+                            <span class="progress-value">@task.CanaryPercentage%</span>
+                        </div>
+                        <Slider @bind-Value="task.CanaryPercentage" 
+                                Min="0" 
+                                Max="100"
+                                TooltipVisible="true"
+                                OnChange="() => UpdateCanaryPercentage(task)" />
+                        <div class="progress-labels">
+                            <span>稳定版 (v@(task.BaseVersion))</span>
+                            <span>金丝雀 (v@(task.NewVersion))</span>
+                        </div>
+                    </div>
+
+                    <div class="metrics-section">
+                        <div class="metric">
+                            <span class="label">金丝雀流量</span>
+                            <span class="value">@task.CanaryRequests</span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">稳定版流量</span>
+                            <span class="value">@task.BaseRequests</span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">错误率对比</span>
+                            <span class="value @GetComparisonClass(task.CanaryErrorRate, task.BaseErrorRate)">
+                                @task.CanaryErrorRate% vs @task.BaseErrorRate%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">延迟对比</span>
+                            <span class="value @GetComparisonClass(task.CanaryLatency, task.BaseLatency)">
+                                @task.CanaryLatencyms vs @task.BaseLatencyms
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="task-actions">
+                        <Button Type="@ButtonType.Primary" OnClick="() => PromoteToFull(task)">
+                            全量发布
+                        </Button>
+                        <Button Danger OnClick="() => Rollback(task)">
+                            回滚
+                        </Button>
+                        <Button Type="@ButtonType.Link" OnClick="() => ViewDetail(task)">
+                            查看详情
+                        </Button>
+                    </div>
+                </Card>
+            }
+            
+            @if (!_activeTasks.Any())
+            {
+                <Empty Description="暂无进行中的金丝雀发布任务">
+                    <Icon Type="@IconType.Outline.Experiment" Style="font-size: 64px; color: #ECECEC;" />
+                </Empty>
+            }
+        </div>
+    </div>
+
+    @* 历史任务 *@
+    <div class="section">
+        <h2 class="section-title">
+            <Icon Type="@IconType.Outline.History" />
+            历史任务
+        </h2>
+        <Table TItem="CanaryTask" DataSource="@_historyTasks" Size="TableSize.Middle">
+            <PropertyColumn Property="c => c.Name" Title="任务名称" />
+            <PropertyColumn Property="c => c.ServiceName" Title="服务" />
+            <PropertyColumn Property="c => c.BaseVersion" Title="基线版本" Width="100" />
+            <PropertyColumn Property="c => c.NewVersion" Title="新版本" Width="100" />
+            <PropertyColumn Property="c => c.FinalPercentage" Title="最终灰度比例" Width="120">
+                <Progress Percent="@context.FinalPercentage" Size="small" />
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.Status" Title="状态" Width="100">
+                <Tag Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</Tag>
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.CompletedAt" Title="完成时间" Width="160">
+                @(context.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")
+            </PropertyColumn>
+        </Table>
+    </div>
+</div>
+
+@* 创建金丝雀任务弹窗 *@
+<Modal Title="新建金丝雀发布任务"
+       Visible="@_createModalVisible"
+       OnOk="CreateTask"
+       OnCancel="() => _createModalVisible = false"
+       Width="600">
+    <Form Model="@_newTask" Layout="@FormLayout.Vertical">
+        <FormItem Label="任务名称" Required>
+            <Input @bind-Value="@_newTask.Name" Placeholder="例如：订单服务v2.3灰度发布" />
+        </FormItem>
+        <FormItem Label="选择服务" Required>
+            <Select @bind-Value="@_newTask.ServiceName" Placeholder="请选择服务">
+                <SelectOption Value="@("order-service")">order-service</SelectOption>
+                <SelectOption Value="@("user-service")">user-service</SelectOption>
+                <SelectOption Value="@("payment-service")">payment-service</SelectOption>
+            </Select>
+        </FormItem>
+        <Row Gutter="16">
+            <Col Span="12">
+                <FormItem Label="基线版本">
+                    <Input @bind-Value="@_newTask.BaseVersion" Disabled />
+                </FormItem>
+            </Col>
+            <Col Span="12">
+                <FormItem Label="新版本" Required>
+                    <Input @bind-Value="@_newTask.NewVersion" Placeholder="例如：2.3.0" />
+                </FormItem>
+            </Col>
+        </Row>
+        <FormItem Label="初始灰度比例">
+            <RadioGroup @bind-Value="@_newTask.InitialPercentage">
+                <Radio Value="5">5%</Radio>
+                <Radio Value="10">10%</Radio>
+                <Radio Value="20">20%</Radio>
+                <Radio Value="50">50%</Radio>
+            </RadioGroup>
+        </FormItem>
+        <FormItem Label="灰度规则">
+            <Select @bind-Value="@_newTask.RuleType" Style="margin-bottom: 12px;">
+                <SelectOption Value="@("percentage")">按比例分配</SelectOption>
+                <SelectOption Value="@("header")">按 Header</SelectOption>
+                <SelectOption Value="@("cookie")">按 Cookie</SelectOption>
+                <SelectOption Value="@("user")">按用户ID</SelectOption>
+            </Select>
+            @if (_newTask.RuleType != "percentage")
+            {
+                <Input @bind-Value="@_newTask.RuleExpression" 
+                       Placeholder="例如：user-id in [1001,1002,1003]" />
+            }
+        </FormItem>
+    </Form>
+</Modal>
+
+<style>
+    .canary-page {
+        padding-bottom: 24px;
+    }
+
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 28px;
+    }
+
+    .header-title h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 8px 0;
+    }
+
+    .header-title .subtitle {
+        font-size: 14px;
+        color: #76747C;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .section {
+        margin-bottom: 32px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .section-title :deep(.anticon) {
+        color: #0A13F0;
+    }
+
+    .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .task-card :deep(.ant-card-body) {
+        padding: 24px;
+    }
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .task-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 12px 0;
+    }
+
+    .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .create-time {
+        font-size: 13px;
+        color: #9999A7;
+    }
+
+    .progress-section {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .progress-header span:first-child {
+        font-size: 13px;
+        color: #76747C;
+    }
+
+    .progress-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: #0A13F0;
+    }
+
+    .progress-section :deep(.ant-slider) {
+        margin: 16px 0;
+    }
+
+    .progress-section :deep(.ant-slider-track) {
+        background: linear-gradient(90deg, #10B981 0%, #0A13F0 100%);
+    }
+
+    .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    .metrics-section {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 992px) {
+        .metrics-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .metric {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px;
+        background: #F9FAFB;
+        border-radius: 8px;
+    }
+
+    .metric .label {
+        font-size: 12px;
+        color: #76747C;
+    }
+
+    .metric .value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .metric .value.better {
+        color: #10B981;
+    }
+
+    .metric .value.worse {
+        color: #EF4444;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid #ECECEC;
+    }
+</style>
+
+@code {
+    private List<CanaryTask> _activeTasks = new();
+    private List<CanaryTask> _historyTasks = new();
+    private bool _createModalVisible = false;
+    private CanaryTaskForm _newTask = new();
+
+    protected override void OnInitialized()
+    {
+        LoadMockData();
+    }
+
+    private void LoadMockData()
+    {
+        _activeTasks = new List<CanaryTask>
+        {
+            new()
+            {
+                Id = "1",
+                Name = "订单服务 v2.3 灰度发布",
+                ServiceName = "order-service",
+                BaseVersion = "2.2.5",
+                NewVersion = "2.3.0",
+                CanaryPercentage = 25,
+                CreatedAt = DateTime.Now.AddDays(-2),
+                BaseRequests = 12500,
+                CanaryRequests = 4200,
+                BaseErrorRate = 0.02,
+                CanaryErrorRate = 0.01,
+                BaseLatency = 45,
+                CanaryLatency = 42
+            }
+        };
+
+        _historyTasks = new List<CanaryTask>
+        {
+            new()
+            {
+                Id = "2",
+                Name = "用户服务 v1.8 灰度发布",
+                ServiceName = "user-service",
+                BaseVersion = "1.7.2",
+                NewVersion = "1.8.0",
+                FinalPercentage = 100,
+                Status = "completed",
+                CompletedAt = DateTime.Now.AddDays(-7)
+            },
+            new()
+            {
+                Id = "3",
+                Name = "支付服务 v3.1 灰度发布",
+                ServiceName = "payment-service",
+                BaseVersion = "3.0.5",
+                NewVersion = "3.1.0",
+                FinalPercentage = 0,
+                Status = "rolled_back",
+                CompletedAt = DateTime.Now.AddDays(-14)
+            }
+        };
+    }
+
+    private void ShowCreateModal()
+    {
+        _newTask = new CanaryTaskForm
+        {
+            BaseVersion = "2.2.5",
+            InitialPercentage = 5,
+            RuleType = "percentage"
+        };
+        _createModalVisible = true;
+    }
+
+    private void CreateTask()
+    {
+        _createModalVisible = false;
+    }
+
+    private void UpdateCanaryPercentage(CanaryTask task) { }
+
+    private void PromoteToFull(CanaryTask task)
+    {
+        task.CanaryPercentage = 100;
+    }
+
+    private void Rollback(CanaryTask task)
+    {
+        task.CanaryPercentage = 0;
+    }
+
+    private void ViewDetail(CanaryTask task) { }
+
+    private static string GetComparisonClass(double canary, double baseline) =>
+        canary < baseline ? "better" : canary > baseline ? "worse" : "";
+
+    private static string GetStatusColor(string status) =>
+        status switch
+        {
+            "completed" => "green",
+            "rolled_back" => "orange",
+            "failed" => "red",
+            _ => "default"
+        };
+
+    private static string GetStatusText(string status) =>
+        status switch
+        {
+            "completed" => "已完成",
+            "rolled_back" => "已回滚",
+            "failed" => "失败",
+            _ => "未知"
+        };
+
+    public class CanaryTask
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string ServiceName { get; set; } = "";
+        public string BaseVersion { get; set; } = "";
+        public string NewVersion { get; set; } = "";
+        public int CanaryPercentage { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string Status { get; set; } = "running";
+        public int FinalPercentage { get; set; }
+        public long BaseRequests { get; set; }
+        public long CanaryRequests { get; set; }
+        public double BaseErrorRate { get; set; }
+        public double CanaryErrorRate { get; set; }
+        public int BaseLatency { get; set; }
+        public int CanaryLatency { get; set; }
+    }
+
+    public class CanaryTaskForm
+    {
+        public string Name { get; set; } = "";
+        public string ServiceName { get; set; } = "";
+        public string BaseVersion { get; set; } = "";
+        public string NewVersion { get; set; } = "";
+        public int InitialPercentage { get; set; } = 5;
+        public string RuleType { get; set; } = "percentage";
+        public string RuleExpression { get; set; } = "";
+    }
+}
