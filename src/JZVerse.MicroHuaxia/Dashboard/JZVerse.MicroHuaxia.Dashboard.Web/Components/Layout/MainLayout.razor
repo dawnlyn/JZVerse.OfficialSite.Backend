@@ -1,68 +1,329 @@
 @inherits LayoutComponentBase
 @inject IOptions<DashboardOptions> Options
 
-<Layout Style="min-height: 100vh;">
-    <Sider Collapsible
-           @bind-Collapsed="@_collapsed"
-           Theme="SiderTheme.Dark"
-           Width="256"
-           CollapsedWidth="80">
-        <div class="logo">
+<div class="microhuaxia-layout">
+    @* 左侧导航栏 *@
+    <aside class="sidebar @(_collapsed ? "collapsed" : "")">
+        <div class="sidebar-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <Icon Type="@IconType.Outline.Cluster" />
+                </div>
+                @if (!_collapsed)
+                {
+                    <span class="brand-text">@Options.Value.Title</span>
+                }
+            </div>
+            <button class="collapse-btn" @onclick="ToggleCollapsed">
+                <Icon Type="@(_collapsed ? IconType.Outline.MenuUnfold : IconType.Outline.MenuFold)" />
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <NavMenu Collapsed="@_collapsed" />
+        </div>
+        <div class="sidebar-footer">
             @if (!_collapsed)
             {
-                <span>@Options.Value.Title</span>
-            }
-            else
-            {
-                <span>MH</span>
+                <span class="version">v1.0.0</span>
             }
         </div>
-        <NavMenu Collapsed="@_collapsed" />
-    </Sider>
-    <Layout>
-        <Header Style="background: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center;">
-                <Button Type="@ButtonType.Text"
-                        Icon="@(_collapsed ? IconType.Outline.MenuUnfold : IconType.Outline.MenuFold)"
-                        OnClick="@ToggleCollapsed" />
+    </aside>
+
+    @* 主内容区 *@
+    <div class="main-wrapper">
+        @* 顶栏 *@
+        <header class="top-header">
+            <div class="header-left">
+                <Breadcrumb>
+                    <BreadcrumbItem>
+                        <Icon Type="@IconType.Outline.Home" />
+                        <span>首页</span>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem>
+                        <span>@GetCurrentPageTitle()</span>
+                    </BreadcrumbItem>
+                </Breadcrumb>
             </div>
-            <div>
-                <Space>
+            <div class="header-right">
+                <Space Size="SpaceSize.Middle">
                     <SpaceItem>
-                        <Tooltip Title="@("刷新")">
-                            <Button Type="@ButtonType.Text" Icon="@IconType.Outline.Reload" OnClick="@Refresh" />
+                        <Tooltip Title="刷新">
+                            <Button Type="@ButtonType.Text" 
+                                    Icon="@IconType.Outline.Reload" 
+                                    OnClick="@Refresh"
+                                    Class="header-btn" />
                         </Tooltip>
                     </SpaceItem>
                     <SpaceItem>
-                        <Tooltip Title="@("设置")">
-                            <Button Type="@ButtonType.Text" Icon="@IconType.Outline.Setting" />
+                        <Tooltip Title="通知">
+                            <Badge Count="3" Dot>
+                                <Button Type="@ButtonType.Text" 
+                                        Icon="@IconType.Outline.Bell" 
+                                        Class="header-btn" />
+                            </Badge>
                         </Tooltip>
+                    </SpaceItem>
+                    <SpaceItem>
+                        <Dropdown Placement="Placement.BottomRight">
+                            <Overlay>
+                                <Menu>
+                                    <MenuItem Key="profile">
+                                        <Icon Type="@IconType.Outline.User" />
+                                        <span>个人中心</span>
+                                    </MenuItem>
+                                    <MenuItem Key="settings">
+                                        <Icon Type="@IconType.Outline.Setting" />
+                                        <span>系统设置</span>
+                                    </MenuItem>
+                                    <MenuDivider />
+                                    <MenuItem Key="logout" Danger>
+                                        <Icon Type="@IconType.Outline.Logout" />
+                                        <span>退出登录</span>
+                                    </MenuItem>
+                                </Menu>
+                            </Overlay>
+                            <ChildContent>
+                                <div class="user-info">
+                                    <Avatar Icon="@IconType.Outline.User" Size="small" />
+                                    <span class="username">管理员</span>
+                                    <Icon Type="@IconType.Outline.Down" Style="font-size: 12px;" />
+                                </div>
+                            </ChildContent>
+                        </Dropdown>
                     </SpaceItem>
                 </Space>
             </div>
-        </Header>
-        <Content Style="margin: 24px 16px 0;">
-            <div style="padding: 24px; background: #fff; min-height: 360px;">
+        </header>
+
+        @* 内容区 *@
+        <main class="main-content">
+            <div class="content-wrapper">
                 @Body
             </div>
-        </Content>
-        <Footer Style="text-align: center;">
-            MicroHuaxia Dashboard &copy; @DateTime.Now.Year - Powered by JZVerse
-        </Footer>
-    </Layout>
-</Layout>
+        </main>
+    </div>
+</div>
 
 <style>
-    .logo {
+    /* ===== 布局框架 ===== */
+    .microhuaxia-layout {
+        display: flex;
+        min-height: 100vh;
+        background-color: #ECECEC;
+    }
+
+    /* ===== 侧边栏 ===== */
+    .sidebar {
+        width: 280px;
+        min-width: 280px;
+        background: #FFFFFF;
+        border-right: 1px solid #ECECEC;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.2s ease-out;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+    }
+
+    .sidebar.collapsed {
+        width: 80px;
+        min-width: 80px;
+    }
+
+    .sidebar-header {
         height: 64px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #ECECEC;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        overflow: hidden;
+    }
+
+    .brand-icon {
+        width: 36px;
+        height: 36px;
+        background: #0A13F0;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         font-size: 18px;
-        font-weight: bold;
-        margin: 16px;
+        flex-shrink: 0;
+    }
+
+    .brand-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #040608;
+        white-space: nowrap;
+    }
+
+    .collapse-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        color: #76747C;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+
+    .collapse-btn:hover {
+        background: #E9F3FE;
+        color: #0A13F0;
+    }
+
+    .sidebar.collapsed .collapse-btn {
+        margin: 0 auto;
+    }
+
+    .sidebar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 0;
+    }
+
+    .sidebar-footer {
+        height: 48px;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #ECECEC;
+    }
+
+    .version {
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    /* ===== 主内容区 ===== */
+    .main-wrapper {
+        flex: 1;
+        margin-left: 280px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        transition: margin-left 0.2s ease-out;
+    }
+
+    .sidebar.collapsed + .main-wrapper {
+        margin-left: 80px;
+    }
+
+    /* ===== 顶栏 ===== */
+    .top-header {
+        height: 64px;
+        background: #FFFFFF;
+        border-bottom: 1px solid #ECECEC;
+        padding: 0 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 99;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-btn {
+        color: #76747C !important;
+        width: 36px !important;
+        height: 36px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+    }
+
+    .header-btn:hover {
+        color: #0A13F0 !important;
+        background: #E9F3FE !important;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 4px 8px;
         border-radius: 8px;
+        transition: background 0.15s ease;
+    }
+
+    .user-info:hover {
+        background: #E9F3FE;
+    }
+
+    .username {
+        font-size: 14px;
+        color: #43475C;
+        font-weight: 500;
+    }
+
+    /* ===== 内容区 ===== */
+    .main-content {
+        flex: 1;
+        padding: 28px 32px;
+    }
+
+    .content-wrapper {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* ===== 响应式 ===== */
+    @@media (max-width: 1024px) {
+        .sidebar {
+            transform: translateX(-100%);
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(0);
+            width: 280px;
+        }
+
+        .main-wrapper {
+            margin-left: 0;
+        }
+
+        .sidebar.collapsed + .main-wrapper {
+            margin-left: 0;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .top-header {
+            padding: 0 16px;
+        }
+
+        .main-content {
+            padding: 16px;
+        }
     }
 </style>
 
@@ -72,12 +333,32 @@
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
 
-    private void ToggleCollapsed() {
-        Console.WriteLine(_collapsed);
-         _collapsed = !_collapsed;
-        Console.WriteLine(_collapsed);
+    private void ToggleCollapsed()
+    {
+        _collapsed = !_collapsed;
     }
 
     private void Refresh() =>
         NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+    private string GetCurrentPageTitle()
+    {
+        var path = new Uri(NavigationManager.Uri).AbsolutePath;
+        return path switch
+        {
+            "/" => "系统总览",
+            "/services" => "服务列表",
+            "/configs" => "配置管理",
+            "/configs/system" => "系统配置",
+            "/configs/gray-release" => "灰度发布",
+            "/configs/migration" => "配置迁移",
+            "/gateway/routes" => "路由管理",
+            "/gateway/audit" => "审计日志",
+            "/mq/topics" => "Topic 管理",
+            "/mq/consumers" => "消费者组",
+            "/mq/connections" => "客户端连接",
+            "/saga" => "Saga 监控",
+            _ => "系统总览"
+        };
+    }
 }

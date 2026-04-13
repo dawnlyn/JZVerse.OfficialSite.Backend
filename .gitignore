@@ -9,3 +9,4 @@ riderModule.iml
 .DS_Store
 nul
 .qoder/
+*.lscache
