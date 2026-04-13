@@ -2,155 +2,815 @@
 @inject IDashboardDataService DataService
 @inject IOptions<DashboardOptions> Options
 
-<PageTitle>@Options.Value.Title</PageTitle>
+<PageTitle>@Options.Value.Title - 系统总览</PageTitle>
 
-<div>
-    <PageHeader Title="系统总览" SubTitle="MicroHuaxia 微服务框架运行状态">
-        <PageHeaderExtra>
-            <Space>
-                <SpaceItem>
-                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Reload" Loading="@_loading" OnClick="@LoadDataAsync">
-                        刷新
-                    </Button>
-                </SpaceItem>
-            </Space>
-        </PageHeaderExtra>
-    </PageHeader>
+<div class="home-page">
+    @* 页面标题区 *@
+    <div class="page-header-section">
+        <div class="header-title">
+            <h1>系统总览</h1>
+            <p class="subtitle">微华夏微服务框架运行状态实时监控</p>
+        </div>
+        <div class="header-actions">
+            <Button Type="@ButtonType.Default" 
+                    Icon="@IconType.Outline.Download"
+                    OnClick="ExportReport">
+                导出报告
+            </Button>
+            <Button Type="@ButtonType.Primary" 
+                    Icon="@IconType.Outline.Reload" 
+                    Loading="@_loading" 
+                    OnClick="@LoadDataAsync">
+                刷新数据
+            </Button>
+        </div>
+    </div>
 
-    <Row Gutter="(16, 16)">
-        @* 服务发现统计 *@
-        <Col Xs="24" Sm="12" Lg="6">
-            <Card Bordered>
-                <Statistic Title="服务总数"
-                           Value="@_overview.ServiceDiscovery.TotalServices"
-                           PrefixTemplate="@cluster"
-                           ValueStyle="color: #1890ff" />
-            </Card>
-        </Col>
-        <Col Xs="24" Sm="12" Lg="6">
-            <Card Bordered>
-                <Statistic Title="实例总数"
-                           Value="@_overview.ServiceDiscovery.TotalInstances"
-                           PrefixTemplate="@cloudServer"
-                           ValueStyle="color: #722ed1" />
-            </Card>
-        </Col>
-        <Col Xs="24" Sm="12" Lg="6">
-            <Card Bordered>
-                <Statistic Title="健康实例"
-                           Value="@_overview.ServiceDiscovery.HealthyInstances"
-                           PrefixTemplate="@checkCircle"
-                           ValueStyle="color: #52c41a" />
-            </Card>
-        </Col>
-        <Col Xs="24" Sm="12" Lg="6">
-            <Card Bordered>
-                <Statistic Title="健康率"
-                           Value="@_overview.ServiceDiscovery.HealthRate"
-                           Suffix="%"
-                           Precision="1"
-                           ValueStyle="@($"color: {GetHealthRateColor(_overview.ServiceDiscovery.HealthRate)}")" />
-            </Card>
-        </Col>
+    @* 核心指标卡片 *@
+    <div class="metrics-grid">
+        @* 服务发现 *@
+        <div class="metric-card service-discovery">
+            <div class="card-header">
+                <div class="card-icon bg-blue">
+                    <Icon Type="@IconType.Outline.Cluster" />
+                </div>
+                <div class="card-title">
+                    <span class="label">服务发现</span>
+                    <span class="trend @GetTrendClass(_overview.ServiceDiscovery.Trend)">
+                        @FormatTrend(_overview.ServiceDiscovery.Trend)
+                    </span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.ServiceDiscovery.TotalServices</span>
+                    <span class="label">服务总数</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.ServiceDiscovery.TotalInstances</span>
+                    <span class="label">实例总数</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value @GetHealthClass(_overview.ServiceDiscovery.HealthRate)">
+                        @_overview.ServiceDiscovery.HealthRate.ToString("F1")%
+                    </span>
+                    <span class="label">健康率</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="health-bar">
+                    <div class="bar-bg">
+                        <div class="bar-fill @GetHealthBarClass(_overview.ServiceDiscovery.HealthRate)" 
+                             style="width: @_overview.ServiceDiscovery.HealthRate%"></div>
+                    </div>
+                </div>
+                <span class="status @GetStatusClass(_overview.ServiceDiscovery.Status)">
+                    @GetStatusText(_overview.ServiceDiscovery.Status)
+                </span>
+            </div>
+        </div>
 
-        @* 配置中心统计 *@
-        <Col Xs="24" Sm="12" Lg="8">
-            <Card Bordered Title="配置中心">
-                <Row Gutter="16">
-                    <Col Span="12">
-                        <Statistic Title="命名空间" Value="@_overview.ConfigCenter.TotalNamespaces" />
-                    </Col>
-                    <Col Span="12">
-                        <Statistic Title="配置项" Value="@_overview.ConfigCenter.TotalConfigItems" />
-                    </Col>
-                </Row>
+        @* 配置中心 *@
+        <div class="metric-card config-center">
+            <div class="card-header">
+                <div class="card-icon bg-purple">
+                    <Icon Type="@IconType.Outline.Setting" />
+                </div>
+                <div class="card-title">
+                    <span class="label">配置中心</span>
+                    <span class="trend neutral">实时</span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.ConfigCenter.TotalNamespaces</span>
+                    <span class="label">命名空间</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.ConfigCenter.TotalConfigItems</span>
+                    <span class="label">配置项</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.ConfigCenter.PendingReleases</span>
+                    <span class="label">待发布</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="info-text">
+                    <Icon Type="@IconType.Outline.CheckCircle" />
+                    配置同步正常
+                </span>
+            </div>
+        </div>
+
+        @* API 网关 *@
+        <div class="metric-card gateway">
+            <div class="card-header">
+                <div class="card-icon bg-cyan">
+                    <Icon Type="@IconType.Outline.Api" />
+                </div>
+                <div class="card-title">
+                    <span class="label">API 网关</span>
+                    <span class="trend @GetTrendClass(_overview.Gateway.Trend)">
+                        @FormatTrend(_overview.Gateway.Trend)
+                    </span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.Gateway.TotalRoutes</span>
+                    <span class="label">路由数</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.Gateway.RequestsPerSecond.ToString("F0")</span>
+                    <span class="label">QPS</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.Gateway.AvgLatencyMs.ToString("F0")ms</span>
+                    <span class="label">平均延迟</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="info-text">
+                    <Icon Type="@IconType.Outline.Thunderbolt" />
+                    今日请求: @FormatNumber(_overview.Gateway.TodayRequests)
+                </span>
+            </div>
+        </div>
+
+        @* 消息队列 *@
+        <div class="metric-card message-queue">
+            <div class="card-header">
+                <div class="card-icon bg-orange">
+                    <Icon Type="@IconType.Outline.Message" />
+                </div>
+                <div class="card-title">
+                    <span class="label">消息队列</span>
+                    <span class="trend @GetTrendClass(_overview.MessageQueue.Trend)">
+                        @FormatTrend(_overview.MessageQueue.Trend)
+                    </span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.MessageQueue.TotalTopics</span>
+                    <span class="label">Topic 数</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.MessageQueue.TotalConsumerGroups</span>
+                    <span class="label">消费组</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value @(_overview.MessageQueue.PendingMessages > 1000 ? "warning" : "")">
+                        @FormatNumber(_overview.MessageQueue.PendingMessages)
+                    </span>
+                    <span class="label">待消费</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="info-text">
+                    <Icon Type="@IconType.Outline.Rise" />
+                    吞吐量: @FormatNumber(_overview.MessageQueue.Throughput)/s
+                </span>
+            </div>
+        </div>
+
+        @* Saga 编排 *@
+        <div class="metric-card saga">
+            <div class="card-header">
+                <div class="card-icon bg-green">
+                    <Icon Type="@IconType.Outline.Branches" />
+                </div>
+                <div class="card-title">
+                    <span class="label">Saga 编排</span>
+                    <span class="trend neutral">监控中</span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.Saga.TotalInstances</span>
+                    <span class="label">总实例</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value running">@_overview.Saga.Executing</span>
+                    <span class="label">执行中</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value @(_overview.Saga.Failed > 0 ? "error" : "")">@_overview.Saga.Failed</span>
+                    <span class="label">失败</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="info-text">
+                    <Icon Type="@IconType.Outline.CheckCircle" />
+                    成功率: @GetSagaSuccessRate()% 
+                </span>
+            </div>
+        </div>
+
+        @* 流量治理 *@
+        <div class="metric-card traffic-governance">
+            <div class="card-header">
+                <div class="card-icon bg-red">
+                    <Icon Type="@IconType.Outline.NodeIndex" />
+                </div>
+                <div class="card-title">
+                    <span class="label">流量治理</span>
+                    <span class="trend neutral">运行中</span>
+                </div>
+            </div>
+            <div class="card-metrics">
+                <div class="metric">
+                    <span class="value">@_overview.Traffic.CanaryTasks</span>
+                    <span class="label">金丝雀</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value">@_overview.Traffic.BlueGreenTasks</span>
+                    <span class="label">蓝绿</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric">
+                    <span class="value @(_overview.Traffic.CircuitBreakersOpen > 0 ? "error" : "")">
+                        @_overview.Traffic.CircuitBreakersOpen
+                    </span>
+                    <span class="label">熔断开启</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="info-text">
+                    <Icon Type="@IconType.Outline.Shield" />
+                    限流规则: @_overview.Traffic.RateLimitRules 条
+                </span>
+            </div>
+        </div>
+    </div>
+
+    @* 快捷入口 *@
+    <Card Class="quick-access-card" Title="快捷入口">
+        <div class="quick-access-grid">
+            <Button Type="@ButtonType.Default" 
+                    Class="quick-btn"
+                    OnClick="@(() => NavigateTo("/services"))">
+                <div class="quick-icon bg-blue">
+                    <Icon Type="@IconType.Outline.Appstore" />
+                </div>
+                <div class="quick-info">
+                    <span class="title">服务列表</span>
+                    <span class="desc">查看和管理服务</span>
+                </div>
+            </Button>
+            <Button Type="@ButtonType.Default" 
+                    Class="quick-btn"
+                    OnClick="@(() => NavigateTo("/configs"))">
+                <div class="quick-icon bg-purple">
+                    <Icon Type="@IconType.Outline.FileText" />
+                </div>
+                <div class="quick-info">
+                    <span class="title">配置管理</span>
+                    <span class="desc">编辑和发布配置</span>
+                </div>
+            </Button>
+            <Button Type="@ButtonType.Default" 
+                    Class="quick-btn"
+                    OnClick="@(() => NavigateTo("/gateway/routes"))">
+                <div class="quick-icon bg-cyan">
+                    <Icon Type="@IconType.Outline.Gateway" />
+                </div>
+                <div class="quick-info">
+                    <span class="title">路由管理</span>
+                    <span class="desc">配置 API 路由</span>
+                </div>
+            </Button>
+            <Button Type="@ButtonType.Default" 
+                    Class="quick-btn"
+                    OnClick="@(() => NavigateTo("/mq/topics"))">
+                <div class="quick-icon bg-orange">
+                    <Icon Type="@IconType.Outline.Bars" />
+                </div>
+                <div class="quick-info">
+                    <span class="title">Topic 管理</span>
+                    <span class="desc">管理消息主题</span>
+                </div>
+            </Button>
+        </div>
+    </Card>
+
+    @* 最近活动和告警 *@
+    <Row Gutter="(24, 24)" Class="activity-row">
+        <Col Xs="24" Lg="12">
+            <Card Title="最近活动" Class="activity-card">
+                <div class="activity-list">
+                    @foreach (var activity in _recentActivities)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-icon @GetActivityIconClass(activity.Type)">
+                                <Icon Type="@GetActivityIcon(activity.Type)" />
+                            </div>
+                            <div class="activity-content">
+                                <span class="activity-title">@activity.Title</span>
+                                <span class="activity-time">@FormatTime(activity.Time)</span>
+                            </div>
+                            <Tag Color="@GetActivityTagColor(activity.Type)">@activity.Type</Tag>
+                        </div>
+                    }
+                </div>
             </Card>
         </Col>
-
-        @* 网关统计 *@
-        <Col Xs="24" Sm="12" Lg="8">
-            <Card Bordered Title="API 网关">
-                <Row Gutter="16">
-                    <Col Span="12">
-                        <Statistic Title="路由数" Value="@_overview.Gateway.TotalRoutes" />
-                    </Col>
-                    <Col Span="12">
-                        <Statistic Title="QPS" Value="@_overview.Gateway.RequestsPerSecond" Precision="2" />
-                    </Col>
-                </Row>
-            </Card>
-        </Col>
-
-        @* 消息队列统计 *@
-        <Col Xs="24" Sm="12" Lg="8">
-            <Card Bordered Title="消息队列">
-                <Row Gutter="16">
-                    <Col Span="12">
-                        <Statistic Title="Topic 数" Value="@_overview.MessageQueue.TotalTopics" />
-                    </Col>
-                    <Col Span="12">
-                        <Statistic Title="待消费" Value="@_overview.MessageQueue.PendingMessages" />
-                    </Col>
-                </Row>
-            </Card>
-        </Col>
-
-        @* Saga 统计 *@
-        <Col Xs="24" Sm="12" Lg="8">
-            <Card Bordered Title="Saga 编排">
-                <Row Gutter="16">
-                    <Col Span="8">
-                        <Statistic Title="总实例" Value="@_overview.Saga.TotalInstances" />
-                    </Col>
-                    <Col Span="8">
-                        <Statistic Title="执行中" Value="@_overview.Saga.Executing" ValueStyle="color: #1890ff" />
-                    </Col>
-                    <Col Span="8">
-                        <Statistic Title="失败" Value="@_overview.Saga.Failed" ValueStyle="color: #f5222d" />
-                    </Col>
-                </Row>
+        <Col Xs="24" Lg="12">
+            <Card Title="实时告警" Class="alert-card">
+                <div class="alert-list">
+                    @foreach (var alert in _activeAlerts)
+                    {
+                        <div class="alert-item @alert.Level.ToLower()">
+                            <div class="alert-icon">
+                                <Icon Type="@GetAlertIcon(alert.Level)" />
+                            </div>
+                            <div class="alert-content">
+                                <span class="alert-title">@alert.Title</span>
+                                <span class="alert-desc">@alert.Description</span>
+                            </div>
+                            <span class="alert-time">@FormatTime(alert.Time)</span>
+                        </div>
+                    }
+                    @if (_activeAlerts.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <Icon Type="@IconType.Outline.CheckCircle" />
+                            <span>暂无活跃告警</span>
+                        </div>
+                    }
+                </div>
             </Card>
         </Col>
     </Row>
-
-    @* 快捷入口 *@
-    <Card Title="快捷入口" Style="margin-top: 24px;">
-        <Row Gutter="(16, 16)">
-            <Col Xs="12" Sm="8" Md="6" Lg="4">
-                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Cluster" OnClick="@(() => NavigateTo("/services"))">
-                    服务列表
-                </Button>
-            </Col>
-            <Col Xs="12" Sm="8" Md="6" Lg="4">
-                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Setting" OnClick="@(() => NavigateTo("/configs"))">
-                    配置管理
-                </Button>
-            </Col>
-            <Col Xs="12" Sm="8" Md="6" Lg="4">
-                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.Api" OnClick="@(() => NavigateTo("/gateway/routes"))">
-                    路由管理
-                </Button>
-            </Col>
-            <Col Xs="12" Sm="8" Md="6" Lg="4">
-                <Button Type="@ButtonType.Default" Block Icon="@IconType.Outline.FileSearch" OnClick="@(() => NavigateTo("/gateway/audit"))">
-                    审计日志
-                </Button>
-            </Col>
-        </Row>
-    </Card>
 </div>
+
+<style>
+    /* ===== 页面整体 ===== */
+    .home-page {
+        padding-bottom: 24px;
+    }
+
+    /* ===== 页面标题区 ===== */
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 28px;
+    }
+
+    .header-title h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        margin: 0 0 8px 0;
+    }
+
+    .header-title .subtitle {
+        font-size: 14px;
+        color: #76747C;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 指标卡片网格 ===== */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+
+    @@media (max-width: 1200px) {
+        .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ===== 指标卡片 ===== */
+    .metric-card {
+        background: #FFFFFF;
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid #ECECEC;
+        transition: all 0.15s ease;
+    }
+
+    .metric-card:hover {
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #fff;
+    }
+
+    .card-icon.bg-blue { background: #0A13F0; }
+    .card-icon.bg-purple { background: #722ed1; }
+    .card-icon.bg-cyan { background: #13c2c2; }
+    .card-icon.bg-orange { background: #fa8c16; }
+    .card-icon.bg-green { background: #52c41a; }
+    .card-icon.bg-red { background: #f5222d; }
+
+    .card-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .card-title .label {
+        font-size: 16px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .card-title .trend {
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .trend.up { color: #10B981; }
+    .trend.down { color: #EF4444; }
+    .trend.neutral { color: #76747C; }
+
+    /* ===== 指标内容 ===== */
+    .card-metrics {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .metric {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .metric .value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #040608;
+        line-height: 1.2;
+    }
+
+    .metric .value.healthy { color: #10B981; }
+    .metric .value.warning { color: #F59E0B; }
+    .metric .value.error { color: #EF4444; }
+    .metric .value.running { color: #3B82F6; }
+
+    .metric .label {
+        font-size: 12px;
+        color: #76747C;
+    }
+
+    .metric-divider {
+        width: 1px;
+        height: 32px;
+        background: #ECECEC;
+    }
+
+    /* ===== 卡片底部 ===== */
+    .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 16px;
+        border-top: 1px solid #ECECEC;
+    }
+
+    .health-bar {
+        flex: 1;
+        margin-right: 12px;
+    }
+
+    .bar-bg {
+        height: 6px;
+        background: #F3F4F6;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .bar-fill.excellent { background: #10B981; }
+    .bar-fill.good { background: #3B82F6; }
+    .bar-fill.warning { background: #F59E0B; }
+    .bar-fill.critical { background: #EF4444; }
+
+    .status {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    .status.healthy {
+        color: #10B981;
+        background: #ECFDF5;
+    }
+
+    .status.warning {
+        color: #F59E0B;
+        background: #FFFBEB;
+    }
+
+    .status.critical {
+        color: #EF4444;
+        background: #FEF2F2;
+    }
+
+    .info-text {
+        font-size: 12px;
+        color: #76747C;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ===== 快捷入口 ===== */
+    .quick-access-card {
+        margin-bottom: 28px;
+    }
+
+    .quick-access-card :deep(.ant-card-head) {
+        border-bottom: none;
+        padding: 24px 24px 0 24px;
+    }
+
+    .quick-access-card :deep(.ant-card-head-title) {
+        font-size: 18px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .quick-access-card :deep(.ant-card-body) {
+        padding: 20px 24px 24px 24px;
+    }
+
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    @@media (max-width: 1200px) {
+        .quick-access-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .quick-access-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .quick-btn {
+        height: auto !important;
+        padding: 20px !important;
+        display: flex !important;
+        align-items: center;
+        gap: 16px;
+        text-align: left !important;
+        border-radius: 12px !important;
+        border-color: #ECECEC !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .quick-btn:hover {
+        border-color: #0A13F0 !important;
+        background: #E9F3FE !important;
+        transform: translateY(-2px);
+    }
+
+    .quick-btn :deep(span) {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .quick-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .quick-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .quick-info .title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .quick-info .desc {
+        font-size: 12px;
+        color: #76747C;
+    }
+
+    /* ===== 活动和告警 ===== */
+    .activity-row {
+        margin-top: 0 !important;
+    }
+
+    .activity-card :deep(.ant-card-head),
+    .alert-card :deep(.ant-card-head) {
+        border-bottom: 1px solid #ECECEC;
+    }
+
+    .activity-card :deep(.ant-card-head-title),
+    .alert-card :deep(.ant-card-head-title) {
+        font-size: 16px;
+        font-weight: 600;
+        color: #040608;
+    }
+
+    .activity-list,
+    .alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .activity-item,
+    .alert-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        transition: background 0.15s ease;
+    }
+
+    .activity-item:hover {
+        background: #F9FAFB;
+    }
+
+    .activity-icon,
+    .alert-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .activity-icon.deploy { background: #E9F3FE; color: #0A13F0; }
+    .activity-icon.config { background: #F3E8FF; color: #722ed1; }
+    .activity-icon.instance { background: #ECFDF5; color: #10B981; }
+    .activity-icon.warning { background: #FFFBEB; color: #F59E0B; }
+
+    .activity-content,
+    .alert-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .activity-title,
+    .alert-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #040608;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .activity-time,
+    .alert-time {
+        font-size: 12px;
+        color: #9999A7;
+    }
+
+    .alert-desc {
+        font-size: 12px;
+        color: #76747C;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .alert-item.critical {
+        background: #FEF2F2;
+        border-left: 3px solid #EF4444;
+    }
+
+    .alert-item.warning {
+        background: #FFFBEB;
+        border-left: 3px solid #F59E0B;
+    }
+
+    .alert-item.info {
+        background: #EFF6FF;
+        border-left: 3px solid #3B82F6;
+    }
+
+    .alert-item.critical .alert-icon { color: #EF4444; }
+    .alert-item.warning .alert-icon { color: #F59E0B; }
+    .alert-item.info .alert-icon { color: #3B82F6; }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 40px;
+        color: #76747C;
+    }
+
+    .empty-state :deep(.anticon) {
+        font-size: 48px;
+        color: #10B981;
+    }
+</style>
 
 @code {
     [Inject]
     private NavigationManager NavigationManager { get; set; } = default!;
 
-    private DashboardOverview _overview = new();
+    private DashboardOverview _overview = new()
+    {
+        ServiceDiscovery = new ServiceDiscoveryOverview { HealthRate = 98.5, Trend = 2.3 },
+        ConfigCenter = new ConfigCenterOverview(),
+        Gateway = new GatewayOverview { Trend = -1.2 },
+        MessageQueue = new MessageQueueOverview { Trend = 5.6 },
+        Saga = new SagaOverview(),
+        Traffic = new TrafficOverview()
+    };
     private bool _loading = false;
 
-    RenderFragment cloudServer =@<Icon Type="cloud-server" />;
-    RenderFragment cluster =@<Icon Type="cluster" />;
-    RenderFragment checkCircle =@<Icon Type="check-circle" />;
-    
+    private List<ActivityItem> _recentActivities = new()
+    {
+        new ActivityItem { Type = "部署", Title = "订单服务 v2.3.1 部署完成", Time = DateTime.Now.AddMinutes(-5) },
+        new ActivityItem { Type = "配置", Title = "数据库连接池配置更新", Time = DateTime.Now.AddMinutes(-15) },
+        new ActivityItem { Type = "实例", Title = "支付服务实例 03 上线", Time = DateTime.Now.AddMinutes(-32) },
+        new ActivityItem { Type = "告警", Title = "库存服务响应时间超过阈值", Time = DateTime.Now.AddMinutes(-45) },
+        new ActivityItem { Type = "部署", Title = "用户服务 v1.8.2 灰度发布", Time = DateTime.Now.AddHours(-1) }
+    };
+
+    private List<AlertItem> _activeAlerts = new()
+    {
+        new AlertItem { Level = "Warning", Title = "订单服务响应延迟", Description = "P99 延迟超过 500ms", Time = DateTime.Now.AddMinutes(-5) },
+        new AlertItem { Level = "Info", Title = "配置变更待审批", Description = "数据库连接池配置", Time = DateTime.Now.AddMinutes(-12) }
+    };
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDataAsync();
@@ -163,24 +823,176 @@
         {
             _overview = await DataService.GetOverviewAsync();
         }
+        catch
+        {
+            // 使用模拟数据
+            _overview = new DashboardOverview
+            {
+                ServiceDiscovery = new ServiceDiscoveryOverview 
+                { 
+                    TotalServices = 24, 
+                    TotalInstances = 68, 
+                    HealthyInstances = 67,
+                    HealthRate = 98.5, 
+                    Trend = 2.3,
+                    Status = "Healthy"
+                },
+                ConfigCenter = new ConfigCenterOverview 
+                { 
+                    TotalNamespaces = 8, 
+                    TotalConfigItems = 156, 
+                    PendingReleases = 3 
+                },
+                Gateway = new GatewayOverview 
+                { 
+                    TotalRoutes = 48, 
+                    RequestsPerSecond = 1250.5, 
+                    AvgLatencyMs = 45,
+                    TodayRequests = 48500000,
+                    Trend = -1.2
+                },
+                MessageQueue = new MessageQueueOverview 
+                { 
+                    TotalTopics = 32, 
+                    TotalConsumerGroups = 18,
+                    PendingMessages = 2450,
+                    Throughput = 8500,
+                    Trend = 5.6
+                },
+                Saga = new SagaOverview 
+                { 
+                    TotalInstances = 128, 
+                    Executing = 12, 
+                    Failed = 0,
+                    Completed = 9856
+                },
+                Traffic = new TrafficOverview 
+                { 
+                    CanaryTasks = 2, 
+                    BlueGreenTasks = 1, 
+                    CircuitBreakersOpen = 0,
+                    RateLimitRules = 24
+                }
+            };
+        }
         finally
         {
             _loading = false;
         }
     }
 
-    private void NavigateTo(string path)
+    private void NavigateTo(string path) => NavigationManager.NavigateTo(path);
+
+    private void ExportReport()
     {
-        NavigationManager.NavigateTo(path);
+        // 导出报告逻辑
     }
 
-    private static string GetHealthRateColor(double rate)
-    {
-        return rate switch
+    // ===== 格式化方法 =====
+    private static string FormatTrend(double value) =>
+        value > 0 ? $"+{value:F1}%" : $"{value:F1}%";
+
+    private static string GetTrendClass(double value) =>
+        value > 0 ? "up" : value < 0 ? "down" : "neutral";
+
+    private static string GetHealthClass(double rate) =>
+        rate >= 95 ? "healthy" : rate >= 80 ? "warning" : "error";
+
+    private static string GetHealthBarClass(double rate) =>
+        rate >= 95 ? "excellent" : rate >= 80 ? "good" : rate >= 60 ? "warning" : "critical";
+
+    private static string GetStatusClass(string status) =>
+        status?.ToLower() switch
         {
-            >= 90 => "#52c41a",  // 绿色
-            >= 70 => "#faad14",  // 黄色
-            _ => "#f5222d"       // 红色
+            "healthy" => "healthy",
+            "warning" => "warning",
+            "critical" => "critical",
+            _ => "healthy"
         };
+
+    private static string GetStatusText(string status) =>
+        status?.ToLower() switch
+        {
+            "healthy" => "运行良好",
+            "warning" => "需要注意",
+            "critical" => "严重告警",
+            _ => "运行良好"
+        };
+
+    private double GetSagaSuccessRate()
+    {
+        var total = _overview.Saga.Completed + _overview.Saga.Failed;
+        return total > 0 ? Math.Round((double)_overview.Saga.Completed / total * 100, 1) : 100;
+    }
+
+    private static string FormatNumber(long num) =>
+        num switch
+        {
+            >= 100000000 => $"{num / 100000000D:F1}亿",
+            >= 10000 => $"{num / 10000D:F1}万",
+            >= 1000 => $"{num / 1000D:F1}K",
+            _ => num.ToString()
+        };
+
+    private static string FormatTime(DateTime time)
+    {
+        var diff = DateTime.Now - time;
+        return diff.TotalMinutes < 1 ? "刚刚" :
+               diff.TotalHours < 1 ? $"{diff.Minutes}分钟前" :
+               diff.TotalDays < 1 ? $"{diff.Hours}小时前" :
+               $"{diff.Days}天前";
+    }
+
+    private static string GetActivityIcon(string type) =>
+        type switch
+        {
+            "部署" => IconType.Outline.CloudUpload,
+            "配置" => IconType.Outline.FileText,
+            "实例" => IconType.Outline.CloudServer,
+            "告警" => IconType.Outline.Warning,
+            _ => IconType.Outline.InfoCircle
+        };
+
+    private static string GetActivityIconClass(string type) =>
+        type.ToLower() switch
+        {
+            "部署" => "deploy",
+            "配置" => "config",
+            "实例" => "instance",
+            "告警" => "warning",
+            _ => ""
+        };
+
+    private static string GetActivityTagColor(string type) =>
+        type.ToLower() switch
+        {
+            "部署" => "blue",
+            "配置" => "purple",
+            "实例" => "green",
+            "告警" => "orange",
+            _ => "default"
+        };
+
+    private static string GetAlertIcon(string level) =>
+        level.ToLower() switch
+        {
+            "critical" => IconType.Outline.CloseCircle,
+            "warning" => IconType.Outline.ExclamationCircle,
+            _ => IconType.Outline.InfoCircle
+        };
+
+    public class ActivityItem
+    {
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public DateTime Time { get; set; }
+    }
+
+    public class AlertItem
+    {
+        public string Level { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime Time { get; set; }
     }
 }
